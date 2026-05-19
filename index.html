@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lao Lottery Analytics Engine</title>
+    <!-- Tailwind CSS for Premium Dark UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for beautiful analytics charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Firebase App and Database SDKs (Compat Version for simple single-file injection) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen antialiased selection:bg-indigo-500 selection:text-white">
+
+    <div class="max-w-md mx-auto min-h-screen flex flex-col justify-between p-4 pb-24">
+        
+        <!-- Header Section -->
+        <header class="mb-6 pt-2 flex items-center justify-between border-b border-slate-800 pb-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-gradient-to-tr from-indigo-500 to-purple-500 p-2.5 rounded-xl shadow-lg shadow-indigo-500/20">
+                    <i class="fa-solid fa-chart-line text-xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">Lao Lotta Engine</h1>
+                    <p class="text-xs text-indigo-400 font-medium tracking-wider uppercase">Probability Analytics</p>
+                </div>
+            </div>
+            <div id="db-status" class="flex items-center gap-2 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 text-xs font-semibold border border-amber-500/20">
+                <span class="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse"></span> Connecting
+            </div>
+        </header>
+
+        <!-- Main Content Scroll Area -->
+        <main class="space-y-6 flex-grow">
+            
+            <!-- SECTION 1: DATA INPUT FORM -->
+            <section class="bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center gap-2 mb-4">
+                    <i class="fa-solid fa-square-plus text-indigo-400"></i>
+                    <h2 class="font-semibold text-sm uppercase tracking-wider text-slate-300">Log Latest Draw</h2>
+                </div>
+                <form id="draw-form" class="space-y-4">
+                    <div>
+                        <label class="block text-xs text-slate-400 font-medium mb-1.5">Official Draw Date</label>
+                        <input type="date" id="draw-date" required 
+                            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition text-slate-200">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 font-medium mb-1.5">Official 6-Digit Result</label>
+                        <div class="relative">
+                            <input type="text" id="six-digit-input" maxlength="6" pattern="\d{6}" required placeholder="e.g., 451293"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-12 py-3 text-lg font-mono tracking-widest text-indigo-400 focus:outline-none focus:border-indigo-500 transition placeholder:text-slate-700 placeholder:tracking-normal">
+                            <div class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 font-mono text-xs">6D</div>
+                        </div>
+                    </div>
+                    <button type="submit" id="submit-btn"
+                        class="w-full bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white font-semibold text-sm py-3 px-4 rounded-xl shadow-lg shadow-indigo-600/10 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-up text-xs"></i> Archive & Process
+                    </button>
+                </form>
+            </section>
+
+            <!-- SECTION 2: ANALYTICS DASHBOARD -->
+            <section class="bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-5 shadow-xl space-y-5">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie text-purple-400"></i>
+                        <h2 class="font-semibold text-sm uppercase tracking-wider text-slate-300">Statistical State</h2>
+                    </div>
+                    <span id="total-draws" class="text-xs bg-slate-800 px-2 py-0.5 rounded text-slate-400 font-mono">0 draws loaded</span>
+                </div>
+
+                <!-- Hot & Cold Badges -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-emerald-500/5 border border-emerald-500/10 p-3 rounded-xl">
+                        <div class="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mb-1">🔥 Hot Digits</div>
+                        <div id="hot-container" class="flex gap-2 text-lg font-mono font-bold text-emerald-300">—</div>
+                    </div>
+                    <div class="bg-rose-500/5 border border-rose-500/10 p-3 rounded-xl">
+                        <div class="text-[10px] text-rose-400 font-bold uppercase tracking-wider mb-1">❄️ Cold Digits</div>
+                        <div id="cold-container" class="flex gap-2 text-lg font-mono font-bold text-rose-300">—</div>
+                    </div>
+                </div>
+
+                <!-- Frequency Chart -->
+                <div class="w-full bg-slate-950/60 border border-slate-800/60 p-3 rounded-xl h-44 flex items-center justify-center relative">
+                    <canvas id="frequencyChart"></canvas>
+                </div>
+            </section>
+
+            <!-- SECTION 3: ALGORITHMIC NUMBER GENERATOR -->
+            <section class="bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-5 shadow-xl space-y-4">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i>
+                    <h2 class="font-semibold text-sm uppercase tracking-wider text-slate-300">Prediction Engine</h2>
+                </div>
+
+                <!-- Digit Pool Toggle -->
+                <div class="grid grid-cols-3 gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800/80 text-xs font-semibold text-center text-slate-400">
+                    <button type="button" onclick="setDigitMode(2)" id="mode-2d" class="py-2 rounded-lg transition-all text-white bg-slate-800">2 Digits</button>
+                    <button type="button" onclick="setDigitMode(3)" id="mode-3d" class="py-2 rounded-lg transition-all">3 Digits</button>
+                    <button type="button" onclick="setDigitMode(6)" id="mode-6d" class="py-2 rounded-lg transition-all">6 Digits</button>
+                </div>
+
+                <!-- Strategy Select -->
+                <div>
+                    <label class="block text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-1.5">Probability Strategy</label>
+                    <select id="strategy-select" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500 transition text-slate-300">
+                        <option value="hot">Strategy A: Momentum (Heavy Hot Weights)</option>
+                        <option value="cold">Strategy B: Law of Large Numbers (Target Cold)</option>
+                        <option value="balanced" selected>Strategy C: Theoretical Balance (50/50 Ratios)</option>
+                    </select>
+                </div>
+
+                <!-- Main Generation CTA Trigger -->
+                <button type="button" id="generate-btn" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 active:scale-[0.98] text-slate-950 font-bold text-sm py-3.5 px-4 rounded-xl shadow-lg shadow-orange-500/10 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-bolt"></i> Generate Candidate Number
+                </button>
+
+                <!-- Target Generated Output View Screen -->
+                <div id="output-screen" class="bg-slate-950 border border-dashed border-indigo-500/30 rounded-xl p-4 text-center hidden">
+                    <div class="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mb-1" id="strategy-label-out">Generated Output</div>
+                    <div class="text-3xl font-mono font-extrabold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400" id="generated-result">000000</div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Script Architecture Boilerplate Logic Engine -->
+    <script>
+        // 1. INJECTED FIREBASE CONFIGURATION OBJECT
+        const firebaseConfig = {
+            apiKey: "AIzaSyC0qZf7frh9BYjtb6iZnWjfMjMnhucfAhI",
+            authDomain: "lao-lottery-engine.firebaseapp.com",
+            databaseURL: "https://lao-lottery-engine-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "lao-lottery-engine",
+            storageBucket: "lao-lottery-engine.firebasestorage.app",
+            messagingSenderId: "780776961991",
+            appId: "1:780776961991:web:480fef483ee174377e4be2",
+            measurementId: "G-3C8CT0YFYF"
+        };
+
+        // Initialize Firebase Apps standard context instance
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Application State Management Coordinates
+        let currentDigitMode = 2;
+        let globalHistory = {};
+        let frequencyMap = Array(10).fill(0);
+        let hotNumbers = [];
+        let coldNumbers = [];
+        let frequencyChartInstance = null;
+
+        // Establish Database Status Hooks Connection Realtime Listener
+        const statusBadge = document.getElementById('db-status');
+        const connectedRef = database.ref(".info/connected");
+        connectedRef.on("value", (snap) => {
+            if (snap.val() === true) {
+                statusBadge.className = "flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20";
+                statusBadge.innerHTML = `<span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span> Engine Live`;
+            } else {
+                statusBadge.className = "flex items-center gap-2 px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-400 text-xs font-semibold border border-rose-500/20";
+                statusBadge.innerHTML = `<span class="h-1.5 w-1.5 rounded-full bg-rose-400 animate-pulse"></span> Offline`;
+            }
+        });
+
+        // Initialize Frequency Distribution Chart Canvas Context
+        function initChart() {
+            const ctx = document.getElementById('frequencyChart').getContext('2d');
+            frequencyChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
+                    datasets: [{
+                        label: 'Digit Count Frequency',
+                        data: frequencyMap,
+                        backgroundColor: 'rgba(99, 102, 241, 0.25)',
+                        borderColor: 'rgba(99, 102, 241, 0.8)',
+                        borderWidth: 1.5,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b', font: { size: 10 } } },
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { weight: 'bold' } } }
+                    }
+                }
+            });
+        }
+
+        // Live Dynamic Listener for History Node updates
+        database.ref('lottery_history').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                globalHistory = data;
+                document.getElementById('total-draws').innerText = `${Object.keys(data).length} draws loaded`;
+                runStatisticalAnalysis(data);
+            } else {
+                document.getElementById('total-draws').innerText = "0 draws loaded";
+                initChart();
+            }
+        });
+
+        // 2. DATA PROCESSING & EXTRACTOR MATHEMATICAL RULES
+        function runStatisticalAnalysis(historyData) {
+            frequencyMap = Array(10).fill(0);
+            
+            // Loop historical instances reading from nested arrays
+            Object.values(historyData).forEach(draw => {
+                if(draw.digits_array && Array.isArray(draw.digits_array)) {
+                    draw.digits_array.forEach(digit => {
+                        frequencyMap[parseInt(digit)]++;
+                    });
+                }
+            });
+
+            // Map keys mapped into sortable distributions array records
+            let sortedMap = frequencyMap.map((count, index) => ({ digit: index, count: count }));
+            
+            // Extract hot arrays sequences ordered high-to-low counts
+            sortedMap.sort((a, b) => b.count - a.count);
+            hotNumbers = [sortedMap[0].digit, sortedMap[1].digit, sortedMap[2].digit];
+            coldNumbers = [sortedMap[9].digit, sortedMap[8].digit, sortedMap[7].digit];
+
+            // Render Output indicators metrics to UI blocks
+            document.getElementById('hot-container').innerText = hotNumbers.join('  ');
+            document.getElementById('cold-container').innerText = coldNumbers.join('  ');
+
+            // Redraw active Canvas metrics instantly cleanly
+            if(frequencyChartInstance) {
+                frequencyChartInstance.data.datasets[0].data = frequencyMap;
+                frequencyChartInstance.update();
+            } else {
+                initChart();
+            }
+        }
+
+        // Intercept Form Event Payload submittals safely
+        document.getElementById('draw-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const dateVal = document.getElementById('draw-date').value;
+            const textVal = document.getElementById('six-digit-input').value.trim();
+
+            if(textVal.length !== 6 || isNaN(textVal)) {
+                alert("Please ensure your number entry matches exact 6 numeric characters.");
+                return;
+            }
+
+            const digits_array = textVal.split('').map(Number);
+            const payload = {
+                draw_date: dateVal,
+                six_digit: textVal,
+                three_digit: textVal.substring(3, 6),
+                two_digit: textVal.substring(4, 6),
+                digits_array: digits_array
+            };
+
+            const nodeKey = dateVal.replace(/-/g, '_') + "_draw";
+            
+            database.ref('lottery_history/' + nodeKey).set(payload)
+                .then(() => {
+                    document.getElementById('six-digit-input').value = '';
+                    alert("Draw recorded successfully. Matrix updating.");
+                })
+                .catch(err => alert("Error committing entry string: " + err.message));
+        });
+
+        // 3. UI GENERATOR TOGGLE ENGINE SELECTIONS
+        function setDigitMode(mode) {
+            currentDigitMode = mode;
+            ['mode-2d', 'mode-3d', 'mode-6d'].forEach(id => document.getElementById(id).className = "py-2 rounded-lg transition-all");
+            document.getElementById('mode-' + mode + 'd').className = "py-2 rounded-lg transition-all text-white bg-slate-800 shadow-sm";
+        }
+
+        // 4. COMBINATORICS ENGINE: STRATEGIC CONDITIONAL PROBABILITY ALGORITHMS
+        document.getElementById('generate-btn').addEventListener('click', function() {
+            const strategy = document.getElementById('strategy-select').value;
+            let outputDigits = [];
+
+            // Safe fallback defaults array values if data stream returns shallow parameters
+            const fallbackHot = hotNumbers.length ? hotNumbers : [1, 3, 8];
+            const fallbackCold = coldNumbers.length ? coldNumbers : [0, 4, 7];
+
+            for (let i = 0; i < currentDigitMode; i++) {
+                if (strategy === 'hot') {
+                    // Strategy A: Weighted heavily to pull from top Hot elements distribution array
+                    if (Math.random() < 0.65) {
+                        outputDigits.push(fallbackHot[Math.floor(Math.random() * fallbackHot.length)]);
+                    } else {
+                        outputDigits.push(Math.floor(Math.random() * 10));
+                    }
+                } else if (strategy === 'cold') {
+                    // Strategy B: Overindex structural random iterations targets targeting Cold properties
+                    if (Math.random() < 0.65) {
+                        outputDigits.push(fallbackCold[Math.floor(Math.random() * fallbackCold.length)]);
+                    } else {
+                        outputDigits.push(Math.floor(Math.random() * 10));
+                    }
+                } else {
+                    // Strategy C: Balanced Distribution (Alternate Odd/Even and High/Low to enforce structural parity)
+                    let candidate = Math.floor(Math.random() * 10);
+                    if (i % 2 === 0) {
+                        // Enforce Even on even intervals
+                        while (candidate % 2 !== 0) candidate = Math.floor(Math.random() * 10);
+                    } else {
+                        // Enforce Odd on odd intervals
+                        while (candidate % 2 === 0) candidate = Math.floor(Math.random() * 10);
+                    }
+                    outputDigits.push(candidate);
+                }
+            }
+
+            // Bind UI mutations parameters adjustments
+            const labels = { hot: "Strategy A: Hot Momentum", cold: "Strategy B: Large Numbers (Cold)", balanced: "Strategy C: Equilibrium Balance" };
+            document.getElementById('strategy-label-out').innerText = labels[strategy] + ` (${currentDigitMode}D Mode)`;
+            document.getElementById('generated-result').innerText = outputDigits.join('');
+            document.getElementById('output-screen').classList.remove('hidden');
+        });
+    </script>
+</body>
+</html>
