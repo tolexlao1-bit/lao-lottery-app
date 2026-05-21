@@ -4,8 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lao Lottery Advanced Combinatorial Engine</title>
+    <!-- Tailwind CSS for Premium Dark UI -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase App and Database SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 </head>
@@ -13,14 +17,14 @@
 
     <div class="max-w-md mx-auto min-h-screen flex flex-col justify-between p-4 pb-24">
         
-        <!-- Header -->
+        <!-- Header Section -->
         <header class="mb-6 pt-2 flex items-center justify-between border-b border-slate-800 pb-4">
             <div class="flex items-center gap-3">
-                <div class="bg-gradient-to-tr from-amber-500 to-orange-500 p-2.5 rounded-xl shadow-lg">
+                <div class="bg-gradient-to-tr from-amber-500 to-orange-500 p-2.5 rounded-xl shadow-lg shadow-amber-500/10">
                     <i class="fa-solid fa-calculator text-xl text-slate-950"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-lg tracking-wide">Mandel-Selbee Engine</h1>
+                    <h1 class="font-bold text-lg tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">Mandel-Selbee Engine</h1>
                     <p class="text-xs text-amber-400 font-medium tracking-wider uppercase">Combinatorial Optimization</p>
                 </div>
             </div>
@@ -32,7 +36,31 @@
         <!-- Main Content -->
         <main class="space-y-6 flex-grow">
             
-            <!-- HISTORICAL STATS OVERVIEW -->
+            <!-- SECTION 1: RESTORED DATA INPUT FORM -->
+            <section class="bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center gap-2 mb-4">
+                    <i class="fa-solid fa-square-plus text-amber-400"></i>
+                    <h2 class="font-semibold text-sm uppercase tracking-wider text-slate-300">Log Latest Draw</h2>
+                </div>
+                <form id="draw-form" class="space-y-4">
+                    <div>
+                        <label class="block text-xs text-slate-400 font-medium mb-1.5">Official Draw Date</label>
+                        <input type="date" id="draw-date" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 font-medium mb-1.5">Official 6-Digit Result</label>
+                        <div class="relative">
+                            <input type="text" id="six-digit-input" maxlength="6" pattern="\d{6}" required placeholder="e.g., 451293" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-12 py-3 text-lg font-mono tracking-widest text-amber-400 focus:outline-none focus:border-amber-500">
+                            <div class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 font-mono text-xs">6D</div>
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-up text-xs"></i> Archive & Process
+                    </button>
+                </form>
+            </section>
+
+            <!-- SECTION 2: HISTORICAL STATS OVERVIEW -->
             <section class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
                 <div class="flex items-center justify-between">
                     <h2 class="font-semibold text-xs uppercase tracking-wider text-slate-400">Database Status</h2>
@@ -50,7 +78,7 @@
                 </div>
             </section>
 
-            <!-- CONDENSED GENERATOR SCREEN -->
+            <!-- SECTION 3: CONDENSED GENERATOR SCREEN -->
             <section class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-layer-group text-amber-400"></i>
@@ -85,7 +113,7 @@
     </div>
 
     <script>
-        // Standard Injected Firebase Configuration Framework
+        // Injected Firebase Configuration Framework
         const firebaseConfig = {
             apiKey: "AIzaSyC0qZf7frh9BYjtb6iZnWjfMjMnhucfAhI",
             authDomain: "lao-lottery-engine.firebaseapp.com",
@@ -103,6 +131,18 @@
         let currentDigitMode = 2;
         let frequencyMap = Array(10).fill(0);
         let highlyFrequentDigits = [1, 3, 5, 8]; // Core Mathematical Optimization Set
+
+        // Establish Database Status Hooks Connection Realtime Listener
+        const statusBadge = document.getElementById('db-status');
+        database.ref(".info/connected").on("value", (snap) => {
+            if (snap.val() === true) {
+                statusBadge.className = "flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20";
+                statusBadge.innerHTML = `<span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span> Engine Live`;
+            } else {
+                statusBadge.className = "flex items-center gap-2 px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-400 text-xs font-semibold border border-rose-500/20";
+                statusBadge.innerHTML = `<span class="h-1.5 w-1.5 rounded-full bg-rose-400 animate-pulse"></span> Offline`;
+            }
+        });
 
         // Fetch updates from active historical metrics database
         database.ref('lottery_history').on('value', (snapshot) => {
@@ -130,9 +170,36 @@
 
         function setDigitMode(mode) {
             currentDigitMode = mode;
-            ['mode-2d', 'mode-3d', 'mode-6d'].forEach(id => document.getElementById(id).className = "py-2 rounded-lg");
+            ['mode-2d', 'mode-3d', 'mode-6d'].forEach(id => document.getElementById(id).className = "py-2 rounded-lg text-slate-400");
             document.getElementById('mode-' + mode + 'd').className = "py-2 rounded-lg text-white bg-slate-800 shadow-sm";
         }
+
+        // Intercept Form Event Payload submittals safely
+        document.getElementById('draw-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const dateVal = document.getElementById('draw-date').value;
+            const textVal = document.getElementById('six-digit-input').value.trim();
+
+            if (textVal.length !== 6 || isNaN(textVal)) {
+                alert("Please ensure your number entry matches exact 6 numeric characters.");
+                return;
+            }
+
+            const payload = {
+                draw_date: dateVal,
+                six_digit: textVal,
+                three_digit: textVal.substring(3, 6),
+                two_digit: textVal.substring(4, 6),
+                digits_array: textVal.split('').map(Number)
+            };
+
+            database.ref('lottery_history/' + dateVal.replace(/-/g, '_') + "_draw").set(payload)
+                .then(() => {
+                    document.getElementById('six-digit-input').value = '';
+                    alert("Draw recorded successfully. Combinatorial metrics updated.");
+                })
+                .catch(err => alert("Error saving data: " + err.message));
+        });
 
         // CONDENSATION & COVERING DESIGN GENERATION SCRIPT
         document.getElementById('generate-btn').addEventListener('click', function() {
@@ -183,8 +250,8 @@
             // Output condensed tickets array to device display screen
             wheelTickets.forEach((tkt, index) => {
                 const row = document.createElement('div');
-                row.className = "flex justify-between items-center py-1 border-b border-slate-900 last:border-0";
-                row.innerHTML = `<span class="text-slate-500 text-xs">Block #${index + 1}</span> <span class="text-amber-400 font-bold tracking-widest">${tkt}</span>`;
+                row.className = "flex justify-between items-center py-2 border-b border-slate-900 last:border-0";
+                row.innerHTML = `<span class="text-slate-500 text-xs">Block #${index + 1}</span> <span class="text-amber-400 font-bold tracking-widest text-base">${tkt}</span>`;
                 container.appendChild(row);
             });
 
@@ -194,3 +261,4 @@
     </script>
 </body>
 </html>
+`
