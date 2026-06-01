@@ -503,7 +503,8 @@
                 Keep the tone extremely professional, intriguing, and tailored for a dark-mode mobile dashboard interface. Avoid using external markup language or complex headers, just output 3 clean, beautiful paragraphs written in natural Lao language.
             `;
 
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
+            // Updated endpoint to use the active GA gemini-2.5-flash model
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
 
             const payload = {
                 contents: [{ parts: [{ text: promptText }] }],
@@ -512,6 +513,7 @@
 
             const maxRetries = 3;
             let currentDelay = 1000;
+            let lastErrorMsg = "ບໍ່ສາມາດເຊື່ອມຕໍ່ກັບເຊີເວີໄດ້";
 
             for (let attempt = 1; attempt <= maxRetries; attempt++) {
                 try {
@@ -521,7 +523,11 @@
                         body: JSON.stringify(payload)
                     });
 
-                    if (!response.ok) throw new Error(`HTTP Error Status: ${response.status}`);
+                    if (!response.ok) {
+                        const errData = await response.json().catch(() => ({}));
+                        lastErrorMsg = errData.error?.message || `HTTP error! status: ${response.status}`;
+                        throw new Error(lastErrorMsg);
+                    }
 
                     const result = await response.json();
                     const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -539,9 +545,21 @@
                         return;
                     }
                 } catch (error) {
+                    console.error(`Attempt ${attempt} failed:`, error);
+                    lastErrorMsg = error.message || lastErrorMsg;
                     if (attempt === maxRetries) {
                         aiLoading.classList.add('hidden');
-                        aiContent.innerHTML = `<p class="text-rose-400 font-semibold flex items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i> ລະບົບການວິເຄາະຂັດຂ້ອງ. (ກວດສອບ API Key ຂອງທ່ານຄືນໃໝ່). ບັນທຶກຂໍ້ມູນລົງໃນປະຫວັດແລ້ວ.</p>`;
+                        aiContent.innerHTML = `
+                            <div class="p-3 border border-rose-500/20 bg-rose-500/5 rounded-xl space-y-2">
+                                <p class="text-rose-400 font-semibold flex items-center gap-1">
+                                    <i class="fa-solid fa-triangle-exclamation"></i> ລະບົບການວິಕೆາະຂັດຂ້ອງ!
+                                </p>
+                                <p class="text-[10px] text-slate-400 leading-normal">
+                                    <strong>ລາຍລະອຽດຂໍ້ຜິດພາດ:</strong> ${lastErrorMsg}<br>
+                                    (ກະລຸນາກວດສອບຄວາມຖືກຕ້ອງຂອງ Gemini API Key ຂອງທ່ານຄືນໃໝ່ ຜ່ານປຸ່ມຕັ້ງຄ່າ ⚙️ ດ້ານເທິງຂວາມື)
+                                </p>
+                            </div>
+                        `;
                         aiContent.classList.remove('hidden');
                     } else {
                         await new Promise(resolve => setTimeout(resolve, currentDelay));
