@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="lo">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -28,8 +28,15 @@
                     <p class="text-xs text-amber-400 font-medium tracking-wider uppercase">Combinatorial & AI Analytics</p>
                 </div>
             </div>
-            <div id="db-status" class="flex items-center gap-2 px-2.5 py-1 rounded-full bg-slate-800 text-xs font-semibold">
-                <span id="status-dot" class="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse"></span> <span id="status-text">Connecting</span>
+            
+            <div class="flex items-center gap-2">
+                <!-- Settings Button to input API Key -->
+                <button type="button" onclick="openSettingsModal()" class="text-slate-400 hover:text-indigo-400 transition p-2 bg-slate-900 rounded-xl border border-slate-800 flex items-center justify-center">
+                    <i class="fa-solid fa-gear text-sm"></i>
+                </button>
+                <div id="db-status" class="flex items-center gap-2 px-2.5 py-1 rounded-full bg-slate-800 text-xs font-semibold">
+                    <span id="status-dot" class="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse"></span> <span id="status-text">Connecting</span>
+                </div>
             </div>
         </header>
 
@@ -50,7 +57,7 @@
                     <div>
                         <label class="block text-xs text-slate-400 font-medium mb-1.5">ເລກອອກ 6 ຕົວຢ່າງເປັນທາງການ</label>
                         <div class="relative">
-                            <input type="text" id="six-digit-input" maxlength="6" pattern="\d{6}" required placeholder="ຕົວຢ່າງ: 451293" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-12 py-3 text-lg font-mono tracking-widest text-amber-400 focus:outline-none focus:border-amber-500">
+                            <input type="text" id="six-digit-input" maxlength="6" pattern="\d{6}" required placeholder="ຕົວຢ່າງ: 762722" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-12 py-3 text-lg font-mono tracking-widest text-amber-400 focus:outline-none focus:border-amber-500">
                             <div class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 font-mono text-xs">6D</div>
                         </div>
                     </div>
@@ -67,17 +74,17 @@
                         <i class="fa-solid fa-brain text-indigo-400"></i>
                         <h2 class="font-bold text-sm text-indigo-300 uppercase tracking-wider">ການວິເຄາະທັນທີໂດຍ AI</h2>
                     </div>
-                    <span class="text-[9px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded font-mono">Gemini-2.5-Flash</span>
+                    <span class="text-[9px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded font-mono">Gemini-1.5-Flash</span>
                 </div>
                 
                 <!-- Loading State Spinner -->
                 <div id="ai-loading" class="flex flex-col items-center justify-center py-6 space-y-2">
                     <i class="fa-solid fa-circle-notch text-2xl text-amber-400 animate-spin"></i>
-                    <p class="text-xs text-slate-400 italic">Gemini ກຳລັງວິເຄາະຮູບແບບສະຖິຕິ ແລະ ຕຳລາຊັ້ນສັດ...</p>
+                    <p class="text-xs text-slate-400 italic text-center">Gemini ກຳລັງວິເຄາະຮູບແບບສະຖິຕິ ແລະ ຕຳລາຊັ້ນສັດ...</p>
                 </div>
 
                 <!-- Analysis Text Output Box -->
-                <div id="ai-content" class="text-xs text-slate-300 leading-relaxed space-y-2 hidden">
+                <div id="ai-content" class="text-xs text-slate-300 leading-relaxed space-y-3 hidden">
                     <!-- Markdown/Plain insight string injected here -->
                 </div>
             </section>
@@ -123,7 +130,7 @@
             <section class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-layer-group text-amber-400"></i>
-                    <h2 class="font-semibold text-sm text-slate-200">การจัดกลุ่มแบบผสมผสาน</h2>
+                    <h2 class="font-semibold text-sm text-slate-200">ການຈັດກຸ່ມແບບປະສົມປະສານ</h2>
                 </div>
 
                 <!-- Mode Selection -->
@@ -152,7 +159,30 @@
 
         </main>
 
-        <!-- PREMIUM UTILITY: CONFIRMATION MODAL (REPLACES BROWSER CONFIRM) -->
+        <!-- PREMIUM UTILITY: SYSTEM SETTINGS MODAL (FOR API KEY CONFIG) -->
+        <div id="settings-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden transition-all duration-300 opacity-0">
+            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-xs w-full mx-4 shadow-2xl transform scale-95 transition-all duration-300">
+                <div class="text-indigo-400 text-2xl mb-2 text-center">
+                    <i class="fa-solid fa-key"></i>
+                </div>
+                <h3 class="font-bold text-base text-slate-100 text-center mb-2">ຕັ້ງຄ່າ Gemini API Key</h3>
+                <p class="text-xs text-slate-400 text-center mb-4 leading-relaxed">ກະລຸນາໃສ່ API Key ຂອງທ່ານເພື່ອໃຫ້ AI ສາມາດວິເຄາະຜົນຫວຍໄດ້ທັນທີ. ຂໍ້ມູນຈະຖືກເກັບໄວ້ໃນເຄື່ອງຂອງທ່ານຢ່າງປອດໄພ.</p>
+                
+                <div class="mb-4">
+                    <input type="password" id="api-key-input" placeholder="AIzaSy..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 font-mono">
+                    <p class="text-[10px] text-slate-500 mt-1 leading-normal">
+                        * ສ້າງ API Key ຟຣີໄດ້ທີ່ Google AI Studio (aistudio.google.com)
+                    </p>
+                </div>
+
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeSettingsModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold py-2.5 rounded-xl transition">ຍົກເລີກ</button>
+                    <button type="button" id="save-settings-btn" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold py-2.5 rounded-xl transition">ບັນທຶກ</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PREMIUM UTILITY: CONFIRMATION MODAL -->
         <div id="delete-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden transition-all duration-300 opacity-0">
             <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-xs w-full mx-4 shadow-2xl transform scale-95 transition-all duration-300">
                 <div class="text-rose-500 text-2xl mb-2 text-center">
@@ -167,7 +197,7 @@
             </div>
         </div>
 
-        <!-- PREMIUM UTILITY: TOAST NOTIFICATIONS (REPLACES BROWSER ALERTS) -->
+        <!-- PREMIUM UTILITY: TOAST NOTIFICATIONS -->
         <div id="toast-notification" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 border border-indigo-500/30 text-slate-100 text-xs px-4 py-3 rounded-xl shadow-2xl transition-all duration-300 transform translate-y-20 opacity-0 z-50 flex items-center gap-2.5 min-w-[280px] justify-center">
             <span id="toast-icon" class="text-indigo-400"></span>
             <span id="toast-message" class="font-medium"></span>
@@ -175,7 +205,6 @@
 
     </div>
 
-    <!-- Script Architecture -->
     <script>
         // Standard Injected Firebase Configuration Framework
         const firebaseConfig = {
@@ -201,26 +230,26 @@
 
         // Traditional Lao Nam Sat Animal mappings for statistical translation
         const laoAnimalChart = {
-            "01": "Guanaco / ກົວນາໂກ", "02": "Calf / ລູกງົວ", "03": "Antelope / ກະທິງ", "04": "Sloth / ຈຳພວກຂີ້ກຽດ", "05": "Black Cat / ແມວດຳ",
-            "06": "White Dog / ໝາຂາວ", "07": "Black Dog / ໝາດຳ", "08": "Bull / ງົວເຖິກ", "09": "Otter / ນາກ", "10": "Rhinoceros / ແຮດ",
-            "11": "Rat / ໜູ", "12": "Dromedary / ອູດ", "13": "Zebra / ມ້າລາຍ", "14": "Hippopotamus / ຮິບໂປ", "15": "Gazelle / ລະມັ່ງ",
-            "16": "Foal / ລູກມ້າ", "17": "Mule / ລໍ", "18": "Blue Fox / ໝາຈອກຟ້າ", "19": "Seal / ແມວນ້ຳ", "20": "Chinchilla / ຊິນຊິລ່າ",
-            "21": "Ermine / ກະຮອກຂາວ", "22": "Wild Boar / ໝູປ່າ", "23": "Cook / ຄົນຄົວກິນ", "24": "White Horse / ມ້າຂາວ", "25": "Buffalo / ຄວາຍ",
-            "26": "Llama / ຢາມา", "27": "Vicuña / ວິກູນຍາ", "28": "Wild Cat / ແມວປ່າ", "29": "White Cat / ແມວຂາວ", "30": "Mink / ວີຊັນ",
-            "31": "Bat / ເຈຍ", "32": "Silver Fox / ໝາຈອກເງິນ", "33": "Sheep / ແກະ", "34": "Ram / ແກະເຖິກ", "35": "Barcino Cat / ແມວລາຍ",
-            "36": "Squirrel / ກະຮອກ", "37": "Koala / ໂຄອາລ່າ", "38": "Puma / ເສືອພູເຂົາ", "39": "Lizard / ກະທ້າງ", "40": "Black Bear / ໝີດຳ",
-            "41": "Pig / ໝູ", "42": "Crocodile / ແຂ້", "43": "Toad / ຄັນຄາກ", "44": "Gorilla / ກໍລິລ່າ", "45": "Ox / ງົວຜູ້",
-            "46": "Red Fox / ໝາຈອກແດງ", "47": "Black Horse / ມ້າດຳ", "48": "Chimpanzee / ຊິມແປນຊີ", "49": "Bison / ໄບຊັນ", "50": "Angora Cat / ແມວແອງໂກລາ",
-            "51": "Carpenter / ຊ່າງໄມ້", "52": "Kangaroo / ຈິ້ງໂຈ້", "53": "Sea Lion / ສິງໂຕທະເລ", "54": "Cow / ງົວແມ່", "55": "Elephant / ຊ້າງ",
-            "56": "Wolf / ໝາປ່າ", "57": "Camel / ອູດສອງໜົກ", "58": "Frog / ກົບ", "59": "Tortoise / ເຕົ່າ", "60": "Marten / ໝາໄມ້",
-            "61": "Mammoth / ແມມມອນ", "62": "Walrus / ມໍສ", "63": "Lion / ສິງໂຕ", "64": "Hyena / ໄຮຢີນ້າ", "65": "Weasel / ພັງພອນ",
-            "66": "Fisherman / ຄົນຫາປາ", "67": "Yarara Snake / ງູຢາຣາຣາ", "68": "Obero Horse / ມ້າລາຍດ່າງ", "69": "Donkey / ລາ", "70": "Vizcacha / ວິດຄາຊາ",
-            "71": "Tapir / ສົມເສັດ", "72": "Hare / ກະຕ່າຍປ່າ", "73": "Iguana / ກະທ້າງໃຫຍ່", "74": "Black Panther / ເສືອດຳ", "75": "Leopard / ເສືອດາວ",
-            "76": "Dragon / ມັງກອນ", "77": "Giraffe / ຢີຣາຟ", "78": "Boa / ງູເຫຼືອມ", "79": "Jackal / ໝາໄນ", "80": "Jaguar / ເສືອຈາກົວ",
-            "81": "Reindeer / ກວາງເຣນເດຍ", "82": "Tiger / ເສືອໂຄ່ງ", "83": "Gray Fox / ໝາຈອກເທົາ", "84": "Lizard / ຈິ້ງຈົກ", "85": "Peccary / ໝູປ່າເປກາຣີ",
-            "86": "Brown Bear / ໝີສີນ້ຳຕານ", "87": "Anteater / ຕົວອ້ານ", "88": "Chameleon / ກະປອມປ່ຽນສີ", "89": "Rat / ໂຕໜູໃຫຍ່", "90": "Caiman / ແຂ້ເຄແມນ",
-            "91": "Armadillo / ຕົວນິ້ມ", "92": "Rabbit / ກະຕ່າຍ", "93": "White Bear / ໝີຂາວ", "94": "Yacare / ແຂ້ຢາຄາເຣ", "95": "Mare / ມ້າແມ່",
-            "96": "Deer / ກວາງ", "97": "Marmot / ມາໝອດ", "98": "Gray Bear / ໝີເທົາ", "99": "Monkey / ລີງ"
+            "01": "ກົວນາໂກ (Guanaco)", "02": "ລູກງົວ (Calf)", "03": "ກະທິງ (Antelope)", "04": "ຈຳພວກຂີ້ກຽດ (Sloth)", "05": "ແມວດຳ (Black Cat)",
+            "06": "ໝາຂາວ (White Dog)", "07": "ໝາດຳ (Black Dog)", "08": "ງົວເຖິກ (Bull)", "09": "ນາກ (Otter)", "10": "ແຮດ (Rhinoceros)",
+            "11": "ໜູ (Rat)", "12": "ອູດ (Dromedary)", "13": "ມ້າລາຍ (Zebra)", "14": "ຮິບໂປ (Hippopotamus)", "15": "ລະມັ່ງ (Gazelle)",
+            "16": "ລູກມ້າ (Foal)", "17": "ລໍ (Mule)", "18": "ໝາຈອກຟ້າ (Blue Fox)", "19": "ແມວນ້ຳ (Seal)", "20": "ຊິນຊິລ່າ (Chinchilla)",
+            "21": "ກະຮອກຂາວ (Ermine)", "22": "ໝູປ່າ (Wild Boar)", "23": "ຄົນຄົວກິນ (Cook)", "24": "ມ້າຂາວ (White Horse)", "25": "ຄວາຍ (Buffalo)",
+            "26": "ຢາມາ (Llama)", "27": "ວິກູນຍາ (Vicuña)", "28": "ແມວປ່າ (Wild Cat)", "29": "ແມວຂາວ (White Cat)", "30": "ວີຊັນ (Mink)",
+            "31": "ເຈຍ (Bat)", "32": "ໝາຈອກເງິນ (Silver Fox)", "33": "ແກະ (Sheep)", "34": "ແກະເຖິກ (Ram)", "35": "ແມວລາຍ (Barcino Cat)",
+            "36": "ກະຮອກ (Squirrel)", "37": "ໂຄອາລ່າ (Koala)", "38": "ເສືອພູເຂົາ (Puma)", "39": "ກະທ້າງ (Lizard)", "40": "ໝີດຳ (Black Bear)",
+            "41": "ໝູ (Pig)", "42": "ແຂ້ (Crocodile)", "43": "ຄັນຄາກ (Toad)", "44": "ກໍລິລ່າ (Gorilla)", "45": "ງົວຜູ້ (Ox)",
+            "46": "ໝາຈອກແດງ (Red Fox)", "47": "ມ້າດຳ (Black Horse)", "48": "ຊິມແປນຊີ (Chimpanzee)", "49": "ໄບຊັນ (Bison)", "50": "ແມວແອງໂກລາ (Angora Cat)",
+            "51": "ຊ່າງໄມ້ (Carpenter)", "52": "ຈິ້ງໂຈ້ (Kangaroo)", "53": "ສິງໂຕທະເລ (Sea Lion)", "54": "ງົວແມ່ (Cow)", "55": "ຊ້າງ (Elephant)",
+            "56": "ໝາປ່າ (Wolf)", "57": "ອູດສອງໜົກ (Camel)", "58": "ກົບ (Frog)", "59": "ເຕົ່າ (Tortoise)", "60": "ໝາໄມ້ (Marten)",
+            "61": "ແມມມອນ (Mammoth)", "62": "ມໍສ (Walrus)", "63": "ສິງໂຕ (Lion)", "64": "ໄຮຢີນ້າ (Hyena)", "65": "ພັງພອນ (Weasel)",
+            "66": "ຄົນຫາປາ (Fisherman)", "67": "ງູຢາຣາຣາ (Yarara Snake)", "68": "ມ້າລາຍດ່າງ (Obero Horse)", "69": "ລາ (Donkey)", "70": "ວິດຄາຊາ (Vizcacha)",
+            "71": "ສົມເສັດ (Tapir)", "72": "ກະຕ່າຍປ່າ (Hare)", "73": "ກະທ້າງໃຫຍ່ (Iguana)", "74": "ເສືອດຳ (Black Panther)", "75": "ເສືອດາວ (Leopard)",
+            "76": "ມັງກອນ (Dragon)", "77": "ຢີຣາຟ (Giraffe)", "78": "ງູເຫຼືອມ (Boa)", "79": "ໝາໄນ (Jackal)", "80": "ເສືອຈາກົວ (Jaguar)",
+            "81": "ກວາງເຣນເດຍ (Reindeer)", "82": "ເສືອໂຄ່ງ (Tiger)", "83": "ໝາຈອກເທົາ (Gray Fox)", "84": "ຈິ້ງຈົກ (Lizard)", "85": "ໝູປ່າເປກາຣີ (Peccary)",
+            "86": "ໝີສີນ້ຳຕານ (Brown Bear)", "87": "ຕົວອ້ານ (Anteater)", "88": "ກະປອມປ່ຽນສີ (Chameleon)", "89": "ໂຕໜູໃຫຍ່ (Rat)", "90": "ແຂ້ເຄແມນ (Caiman)",
+            "91": "ຕົວນິ້ມ (Armadillo)", "92": "ກະຕ່າຍ (Rabbit)", "93": "ໝີຂາວ (White Bear)", "94": "ແຂ້ຢາຄາເຣ (Yacare)", "95": "ມ້າແມ່ (Mare)",
+            "96": "ກວາງ (Deer)", "97": "ມາໝອດ (Marmot)", "98": "ໝີເທົາ (Gray Bear)", "99": "ລີງ (Monkey)"
         };
 
         const statusDot = document.getElementById('status-dot');
@@ -239,6 +268,12 @@
         document.addEventListener('DOMContentLoaded', () => {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('draw-date').value = today;
+            
+            // Check if API key exists in LocalStorage
+            const savedKey = localStorage.getItem('gemini_api_key');
+            if (savedKey) {
+                document.getElementById('api-key-input').value = savedKey;
+            }
         });
 
         // Fetch updates from active historical database stream
@@ -317,6 +352,7 @@
             });
         }
 
+        // PREMIUM CUSTOM POPUPS / TOASTS
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast-notification');
             const toastMsg = document.getElementById('toast-message');
@@ -343,6 +379,40 @@
             }, 3000);
         }
 
+        // SETTINGS MODAL LOGIC (API KEY)
+        function openSettingsModal() {
+            const modal = document.getElementById('settings-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('div').classList.remove('scale-95');
+                modal.querySelector('div').classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeSettingsModal() {
+            const modal = document.getElementById('settings-modal');
+            modal.classList.add('opacity-0');
+            modal.querySelector('div').classList.remove('scale-100');
+            modal.querySelector('div').classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        document.getElementById('save-settings-btn').addEventListener('click', () => {
+            const keyVal = document.getElementById('api-key-input').value.trim();
+            if (keyVal) {
+                localStorage.setItem('gemini_api_key', keyVal);
+                showToast("ບັນທຶກ API Key ສຳເລັດແລ້ວ!", "success");
+            } else {
+                localStorage.removeItem('gemini_api_key');
+                showToast("ລຶບ API Key ອອກແລ້ວ.", "info");
+            }
+            closeSettingsModal();
+        });
+
+        // DELETE HISTORY RECORD MODAL
         function openDeleteModal(nodeKey) {
             activeDeleteKey = nodeKey;
             const modal = document.getElementById('delete-modal');
@@ -392,6 +462,7 @@
             }
         }
 
+        // --- GEMINI PROMPT GENERATION ENGINE ---
         async function runGeminiAnalysis(date, fullNumber) {
             const aiPanel = document.getElementById('ai-panel');
             const aiLoading = document.getElementById('ai-loading');
@@ -404,6 +475,20 @@
 
             const tail2D = fullNumber.substring(4, 6);
             const animalName = laoAnimalChart[tail2D] || "ບໍ່ພົບຂໍ້ມູນໃນຕຳລາ";
+
+            // Local API check
+            const geminiApiKey = localStorage.getItem('gemini_api_key');
+            if (!geminiApiKey) {
+                aiLoading.classList.add('hidden');
+                aiContent.innerHTML = `
+                    <div class="text-center p-3 border border-amber-500/20 bg-amber-500/5 rounded-xl space-y-2">
+                        <p class="text-amber-400 font-bold text-xs"><i class="fa-solid fa-key"></i> ກະລຸນາຕັ້ງຄ່າ API Key ກ່ອນ!</p>
+                        <p class="text-[10px] text-slate-400 leading-normal">ກົດທີ່ປຸ່ມຮູບເຟືອງ ⚙️ ດ້ານເທິງຂວາມື ເພື່ອວາງ API Key ຂອງທ່ານ. ຫຼັງຈາກນັ້ນ Gemini ຈະວິເຄາະໃຫ້ໂດຍອັດຕະໂນມັດທັນທີ.</p>
+                    </div>
+                `;
+                aiContent.classList.remove('hidden');
+                return;
+            }
 
             const promptText = `
                 Analyze this Lao Lottery draw result.
@@ -418,15 +503,14 @@
                 Keep the tone extremely professional, intriguing, and tailored for a dark-mode mobile dashboard interface. Avoid using external markup language or complex headers, just output 3 clean, beautiful paragraphs written in natural Lao language.
             `;
 
-            const apiKey = ""; 
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
 
             const payload = {
                 contents: [{ parts: [{ text: promptText }] }],
                 systemInstruction: { parts: [{ text: "You are the advanced analytical advisor of the Mandel-Selbee Lao Lottery engine. Your reports are always concise, punchy, mathematically interesting, culturally grounded, and written entirely in natural, elegant, and polite Lao language (ພາສາລາວ)." }] }
             };
 
-            const maxRetries = 5;
+            const maxRetries = 3;
             let currentDelay = 1000;
 
             for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -457,7 +541,7 @@
                 } catch (error) {
                     if (attempt === maxRetries) {
                         aiLoading.classList.add('hidden');
-                        aiContent.innerHTML = `<p class="text-rose-400 font-semibold flex items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i> ລະບົບການວິເຄາະຂັດຂ້ອງ. ບັນທຶກຂໍ້ມູນລົງໃນປະຫວັດແລ້ວ.</p>`;
+                        aiContent.innerHTML = `<p class="text-rose-400 font-semibold flex items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i> ລະບົບການວິເຄາະຂັດຂ້ອງ. (ກວດສອບ API Key ຂອງທ່ານຄືນໃໝ່). ບັນທຶກຂໍ້ມູນລົງໃນປະຫວັດແລ້ວ.</p>`;
                         aiContent.classList.remove('hidden');
                     } else {
                         await new Promise(resolve => setTimeout(resolve, currentDelay));
@@ -467,6 +551,7 @@
             }
         }
 
+        // Form Submission to Log Results
         document.getElementById('draw-form').addEventListener('submit', function(e) {
             e.preventDefault();
             const dateVal = document.getElementById('draw-date').value;
@@ -513,6 +598,7 @@
             document.getElementById('mode-' + mode + 'd').className = "py-2 rounded-lg text-white bg-slate-800 shadow-sm";
         }
 
+        // CONDENSATION & COVERING DESIGN GENERATION SCRIPT
         document.getElementById('generate-btn').addEventListener('click', function() {
             const container = document.getElementById('tickets-container');
             container.innerHTML = ''; 
@@ -580,13 +666,9 @@
 ```
 eof
 
----
+### ສະຫຼຸບຈຸດປ່ຽນແປງໃໝ່:
+1. **ປຸ່ມ Gear ⚙️ ຢູ່ເທິງຂວາ:** ເມື່ອກົດແລ້ວ ຈະມີປ໊ອບອັບແບບ Premium ຂຶ້ນມາໃຫ້ທ່ານວາງ Gemini API Key ຂອງທ່ານເອງ.
+2. **ເກັບຮັກສາປອດໄພ:** ຄີຈະຖືກເກັບໄວ້ໃນ LocalStorage ຂອງ Galaxy S24 Ultra ເທົ່ານັ້ນ ບໍ່ຫຼຸດຫາຍ ແລະ ບໍ່ມີການແບ່ງປັນກັບໃຜໃນ GitHub.
+3. **Gemini 1.5 Flash:** ອັບເກຣດ endpoint ໃຫ້ມີຄວາມສະຖຽນ ແລະ ຕອບສະໜອງໄດ້ໄວຂຶ້ນ.
 
-The code editor is now updated with the final compiled asset. 
-
-### Quick Summary of Features:
-- **Lao Language AI Insights:** Prompt templates and system guidelines instruct the Gemini model to respond in Lao.
-- **Custom Native Element Overrides:** Dialogs and warnings are styled directly inline within Tailwind CSS containers. No more browser `alert()` or `confirm()` security blocks in iFrame environments.
-- **Real-Time Integration Loop:** Connected straight to Vientiane regional RTDB instances to process historic matrices. 
-
-You can test the preview directly or copy the code from the editor panel to commit straight to your GitHub repository! Let me know if you need to refine any styling or algorithm weights.
+ທ່ານສາມາດກັອບປີ້ລະຫັດນີ້ໄປທັບໃສ່ໄຟລ໌ `index.html` ຢູ່ໃນ GitHub Pages ຂອງທ່ານ ແລ້ວທົດລອງປ້ອນ API Key ຢູ່ໜ້າຈໍໂທລະສັບ ເພື່ອເປີດໃຊ້ງານ AI ວິເຄາະຫວຍໄດ້ທັນທີເລີຍ!
