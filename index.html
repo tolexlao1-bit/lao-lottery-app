@@ -1,249 +1,929 @@
+```html
 <!DOCTYPE html>
-<html lang="en">
+<html lang="lo">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mandel-Selbee Optimization Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .mono { font-family: 'JetBrains Mono', monospace; }
-        /* Custom scrollbar tracking for historical lists */
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.4); border-radius: 4px; }
-    </style>
+    <title>Lao Lottery Advanced Combinatorial Engine</title>
+    <!-- Tailwind CSS for Premium Dark UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase App and Database SDKs (Compat Version) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen p-4 lg:p-8">
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen antialiased selection:bg-indigo-500 selection:text-white">
 
-    <div class="max-w-6xl mx-auto space-y-6">
+    <div class="max-w-md mx-auto min-h-screen flex flex-col justify-between p-4 pb-24 relative">
         
-        <header class="border-b border-slate-800 pb-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-                <h1 class="text-2xl font-extrabold bg-gradient-to-r from-teal-400 via-cyan-400 to-indigo-400 bg-clip-text text-transparent">
-                    Mandel-Selbee Analysis Terminal
-                </h1>
-                <p class="text-slate-400 text-xs mt-0.5">Combinatorial Optimization & Strategic Covering Set Generator</p>
+        <!-- Header -->
+        <header class="mb-6 pt-2 flex items-center justify-between border-b border-slate-800 pb-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-gradient-to-tr from-amber-500 to-orange-500 p-2.5 rounded-xl shadow-lg">
+                    <i class="fa-solid fa-calculator text-xl text-slate-950"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg tracking-wide">Mandel-Selbee Engine</h1>
+                    <p class="text-xs text-amber-400 font-medium tracking-wider uppercase">Statistical & AI Analytics</p>
+                </div>
             </div>
-            <div class="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs mono">
-                <span class="w-2 h-2 rounded-full bg-teal-500 animate-pulse"></span>
-                <span>Mandel-Selbee Engine Active</span>
+            
+            <div class="flex items-center gap-2">
+                <!-- Settings Button to input API Key -->
+                <button type="button" onclick="openSettingsModal()" class="text-slate-400 hover:text-indigo-400 transition p-2 bg-slate-900 rounded-xl border border-slate-800 flex items-center justify-center">
+                    <i class="fa-solid fa-gear text-sm"></i>
+                </button>
+                <div id="db-status" class="flex items-center gap-2 px-2.5 py-1 rounded-full bg-slate-800 text-xs font-semibold">
+                    <span id="status-dot" class="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse"></span> <span id="status-text">Connecting</span>
+                </div>
             </div>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Main Content -->
+        <main class="space-y-6 flex-grow">
             
-            <div class="lg:col-span-4 space-y-6">
-                
-                <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 backdrop-blur-sm">
-                    <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider mb-4 flex items-center gap-2">
-                        <span>📥</span> Enter Drawing Results
-                    </h2>
-                    
-                    <form id="draw-entry-form" class="space-y-4" onsubmit="handleFormSubmit(event)">
-                        <div class="grid grid-cols-4 gap-2">
-                            <div>
-                                <label class="block text-[10px] mono text-slate-500 mb-1">Ball 1</label>
-                                <input type="number" min="0" max="99" required class="w-full bg-slate-950 border border-slate-800 focus:border-teal-500 rounded-xl py-2 text-center text-sm font-bold font-mono outline-none transition" placeholder="00">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] mono text-slate-500 mb-1">Ball 2</label>
-                                <input type="number" min="0" max="99" required class="w-full bg-slate-950 border border-slate-800 focus:border-teal-500 rounded-xl py-2 text-center text-sm font-bold font-mono outline-none transition" placeholder="00">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] mono text-slate-500 mb-1">Ball 3</label>
-                                <input type="number" min="0" max="99" required class="w-full bg-slate-950 border border-slate-800 focus:border-teal-500 rounded-xl py-2 text-center text-sm font-bold font-mono outline-none transition" placeholder="00">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] mono text-slate-500 mb-1">Ball 4</label>
-                                <input type="number" min="0" max="99" required class="w-full bg-slate-950 border border-slate-800 focus:border-teal-500 rounded-xl py-2 text-center text-sm font-bold font-mono outline-none transition" placeholder="00">
-                            </div>
+            <!-- SECTION 1: DATA INPUT FORM -->
+            <section class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center gap-2 mb-4">
+                    <i class="fa-solid fa-square-plus text-amber-400"></i>
+                    <h2 class="font-semibold text-sm uppercase tracking-wider text-slate-300">ບັນທຶກຜົນການອອກຫວຍລ້າສຸດ</h2>
+                </div>
+                <form id="draw-form" class="space-y-4">
+                    <div>
+                        <label class="block text-xs text-slate-400 font-medium mb-1.5">ວັນທີອອກຫວຍຢ່າງເປັນທາງການ</label>
+                        <input type="date" id="draw-date" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 font-medium mb-1.5">ເລກອອກ 6 ຕົວຢ່າງເປັນທາງການ</label>
+                        <div class="relative">
+                            <input type="text" id="six-digit-input" maxlength="6" pattern="\d{6}" required placeholder="ຕົວຢ່າງ: 762722" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-12 py-3 text-lg font-mono tracking-widest text-amber-400 focus:outline-none focus:border-amber-500">
+                            <div class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 font-mono text-xs">6D</div>
                         </div>
-                        <button type="submit" class="w-full bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-500 hover:to-cyan-500 text-white font-semibold text-xs py-2.5 rounded-xl transition shadow-md cursor-pointer">
-                            Add to Historical Database
-                        </button>
-                    </form>
+                    </div>
+                    <button type="submit" id="submit-draw-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-up text-xs"></i> ຈັດເກັບ & ປະມວນຜົນ
+                    </button>
+                </form>
+            </section>
+
+            <!-- SECTION 1.5: INSTANT GEMINI ANALYSIS PANEL -->
+            <section id="ai-panel" class="bg-gradient-to-br from-indigo-950/40 to-slate-900/80 border border-indigo-500/20 rounded-2xl p-5 shadow-xl hidden">
+                <div class="flex items-center justify-between mb-3 border-b border-indigo-500/10 pb-2">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-brain text-indigo-400"></i>
+                        <h2 class="font-bold text-sm text-indigo-300 uppercase tracking-wider">ການວິເຄາະທັນທີໂດຍ AI</h2>
+                    </div>
+                    <span class="text-[9px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded font-mono">Gemini-2.5-Flash</span>
+                </div>
+                
+                <!-- Loading State Spinner -->
+                <div id="ai-loading" class="flex flex-col items-center justify-center py-6 space-y-2">
+                    <i class="fa-solid fa-circle-notch text-2xl text-amber-400 animate-spin"></i>
+                    <p class="text-xs text-slate-400 italic text-center">Gemini ກຳລັງປະມວນຜົນ Bayesian, Markov Chain & ຕຳລາຊັ້ນສັດ...</p>
                 </div>
 
-                <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
-                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Engine Computations</h3>
-                    <button onclick="triggerEnginePipeline()" class="w-full bg-slate-800 border border-slate-700 hover:bg-slate-700/80 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">
-                        🔄 Recalculate Possible Combinations
+                <!-- Analysis Text Output Box -->
+                <div id="ai-content" class="text-xs text-slate-300 leading-relaxed space-y-3 hidden">
+                    <!-- Markdown/Plain insight string injected here -->
+                </div>
+            </section>
+
+            <!-- SECTION 2: ADVANCED MATH METRICS ENGINE -->
+            <section class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-semibold text-xs uppercase tracking-wider text-slate-400">ລະບົບວິເຄາະຂັ້ນສູງ (Advanced Math Hub)</h2>
+                    <span id="total-draws" class="text-xs font-mono bg-slate-950 px-2 py-0.5 rounded text-indigo-400">0 draws loaded</span>
+                </div>
+
+                <!-- Tab Buttons -->
+                <div class="grid grid-cols-3 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-850 text-[10px] font-bold text-center">
+                    <button type="button" id="tab-btn-bayesian" onclick="switchMathTab('bayesian')" class="py-1.5 rounded-lg text-amber-400 bg-slate-900 border border-slate-800/80">Bayesian</button>
+                    <button type="button" id="tab-btn-markov" onclick="switchMathTab('markov')" class="py-1.5 rounded-lg text-slate-400">Markov Chain</button>
+                    <button type="button" id="tab-btn-coc" onclick="switchMathTab('coc')" class="py-1.5 rounded-lg text-slate-400">Co-Occurrence</button>
+                </div>
+
+                <!-- TAB CONTENT 1: BAYESIAN RECENCY (Decay weights) -->
+                <div id="math-tab-bayesian" class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] text-slate-400">Bayesian Recency (ຄວາມຖີ່ຖ່ວງນ້ຳໜັກຕາມຄວາມໃໝ່)</span>
+                        <span class="text-[10px] text-amber-400 font-mono">λ = 0.15 (15% Decay Rate)</span>
+                    </div>
+                    <div id="bayesian-bar-container" class="space-y-1.5 bg-slate-950 p-3 rounded-xl border border-slate-900">
+                        <!-- Dynamic bar graphs -->
+                    </div>
+                    <p class="text-[10px] text-slate-500 italic">ຜົນການວິເຄາະນີ້ຈະໃຫ້ຄ່າຄວາມສຳຄັນສູງສຸດແກ່ຕົວເລກທີ່ເພິ່ງອອກມໍ່ໆນີ້ ຕາມທິດສະດີ Bayesian Recency.</p>
+                </div>
+
+                <!-- TAB CONTENT 2: MARKOV TRANSITION MATRIX -->
+                <div id="math-tab-markov" class="space-y-3 hidden">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] text-slate-400">Markov State Transition Matrix (0-9)</span>
+                        <span class="text-[10px] text-emerald-400 font-mono">Tail Digit 1-Step State</span>
+                    </div>
+                    <!-- Transition Matrix Grid -->
+                    <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-900">
+                        <div class="grid grid-cols-11 gap-0.5 text-center text-[9px] font-mono text-slate-500 mb-1">
+                            <div></div>
+                            <div>0</div><div>1</div><div>2</div><div>3</div><div>4</div><div>5</div><div>6</div><div>7</div><div>8</div><div>9</div>
+                        </div>
+                        <div id="markov-matrix-grid" class="space-y-0.5">
+                            <!-- Rows generated programmatically -->
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-slate-500 italic">ແຖວ (Row) ແທນຕົວເລກປັດຈຸບັນ ແລະ ຖັນ (Column) ແທນຄວາມໜ້າຈະເປັນທີ່ຈະປ່ຽນໄປເປັນຕົວເລກຖັດໄປ.</p>
+                </div>
+
+                <!-- TAB CONTENT 3: CO-OCCURRENCE MAPPING -->
+                <div id="math-tab-coc" class="space-y-3 hidden">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] text-slate-400">Co-Occurrence Correlation Mapping</span>
+                        <span class="text-[10px] text-indigo-400 font-mono">Pairwise Multi-Occurrence</span>
+                    </div>
+                    <div id="coc-pairs-container" class="grid grid-cols-2 gap-2 bg-slate-950 p-3 rounded-xl border border-slate-900 text-xs">
+                        <!-- Top co-occurring pairs -->
+                    </div>
+                    <p class="text-[10px] text-slate-500 italic">ຄູ່ຕົວເລກທີ່ມີແນວໂນ້ມ ແລະ ສະຖິຕິມັກຈະປະກົດອອກຮ່ວມກັນໃນຜົນຫວຍຊຸດດຽວກັນຫຼາຍທີ່ສຸດ.</p>
+                </div>
+
+                <!-- Overview Quick Stats -->
+                <div class="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800/60">
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Mandel Hot Pool</div>
+                        <div id="hot-pool" class="font-mono text-emerald-400 font-bold">[...]</div>
+                    </div>
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Harvey Cover Delta</div>
+                        <div id="cold-pool" class="font-mono text-indigo-400 font-bold">Δ Syncing</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 3: RESULT HISTORY LOGS -->
+            <section class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-indigo-400"></i>
+                        <h2 class="font-semibold text-sm text-slate-200">ປະຫວັດການອອກຫວຍ</h2>
+                    </div>
+                    <button type="button" id="toggle-history-btn" onclick="toggleHistoryCollapse()" class="text-xs text-indigo-400 font-semibold hover:underline">
+                        ຫຍໍ້ເຂົ້າ
                     </button>
                 </div>
 
-                <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Historical Draws Timeline</h3>
-                        <span id="global-counter-badge" class="bg-slate-950 px-2 py-0.5 border border-slate-800 rounded text-[10px] text-slate-400 mono">0 Entries</span>
+                <div id="history-scroll-container" class="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                    <div id="empty-history-notice" class="text-center py-6 text-sm text-slate-500 italic">
+                        ບໍ່ມີຂໍ້ມູນການອອກຫວຍກ່ອນໜ້ານີ້ໃນລະບົບ.
                     </div>
-                    <div id="historical-feed-box" class="space-y-2 max-h-[250px] overflow-y-auto pr-1 custom-scrollbar font-mono text-xs">
-                        </div>
+                </div>
+            </section>
+
+            <!-- SECTION 4: CONDENSED GENERATOR SCREEN -->
+            <section class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-layer-group text-amber-400"></i>
+                    <h2 class="font-semibold text-sm text-slate-200">ການຈັດກຸ່ມແບບປະສົມປະສານ</h2>
+                </div>
+
+                <!-- Mode Selection -->
+                <div class="grid grid-cols-3 gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-semibold text-center text-slate-400">
+                    <button type="button" onclick="setDigitMode(2)" id="mode-2d" class="py-2 rounded-lg text-white bg-slate-800">2D (ຄໍ້າປະກັນ)</button>
+                    <button type="button" onclick="setDigitMode(3)" id="mode-3d" class="py-2 rounded-lg">3D ຫຍໍ້ກຸ່ມ</button>
+                    <button type="button" onclick="setDigitMode(6)" id="mode-6d" class="py-2 rounded-lg">6D ລະບົບ</button>
+                </div>
+
+                <button type="button" id="generate-btn" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold text-sm py-3.5 rounded-xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-cubes"></i> ສ້າງຊຸດຕົວເລກທີ່ເໝາະສົມທີ່ສຸດ
+                </button>
+
+                <!-- Output Area for Covering Design Tickets -->
+                <div id="output-screen" class="space-y-3 hidden">
+                    <div class="text-xs text-slate-400 font-bold uppercase tracking-wider flex justify-between">
+                        <span>ຜົນການອອກແບບການປົກຄຸມແບບ Harvey</span>
+                        <span class="text-amber-400 font-mono" id="ticket-count">0 ຊຸດ</span>
+                    </div>
+                    <div id="tickets-container" class="bg-slate-950 border border-slate-800 rounded-xl p-3 font-mono text-sm space-y-1.5 max-h-48 overflow-y-auto">
+                        <!-- Dynamically generated ticket matrices live here -->
+                    </div>
+                    <p class="text-[11px] text-slate-500 italic"><i class="fa-solid fa-circle-info"></i> ການຄໍ້າປະກັນທາງຄະນິດສາດຂອງ Mandel: ຖ້າຕົວເລກໃນກຸ່ມຮ້ອນຖືກອອກ, ຢ່າງໜ້ອຍໜຶ່ງໃນຊຸດນີ້ຈະມີລາງວັນຢ່າງແນ່ນອນ.</p>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- PREMIUM UTILITY: SYSTEM SETTINGS MODAL (FOR API KEY CONFIG) -->
+        <div id="settings-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden transition-all duration-300 opacity-0">
+            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-xs w-full mx-4 shadow-2xl transform scale-95 transition-all duration-300">
+                <div class="text-indigo-400 text-2xl mb-2 text-center">
+                    <i class="fa-solid fa-key"></i>
+                </div>
+                <h3 class="font-bold text-base text-slate-100 text-center mb-2">ຕັ້ງຄ່າ Gemini API Key</h3>
+                <p class="text-xs text-slate-400 text-center mb-4 leading-relaxed">ກະລຸນາໃສ່ API Key ຂອງທ່ານເພື່ອໃຫ້ AI ສາມາດວິເຄາະຜົນຫວຍໄດ້ທັນທີ. ຂໍ້ມູນຈະຖືກເກັບໄວ້ໃນເຄື່ອງຂອງທ່ານຢ່າງປອດໄພ.</p>
+                
+                <div class="mb-4">
+                    <input type="password" id="api-key-input" placeholder="AIzaSy..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 font-mono">
+                    <p class="text-[10px] text-slate-500 mt-1 leading-normal">
+                        * ສ້າງ API Key ຟຣີໄດ້ທີ່ Google AI Studio (aistudio.google.com)
+                    </p>
+                </div>
+
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeSettingsModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold py-2.5 rounded-xl transition">ຍົກເລີກ</button>
+                    <button type="button" id="save-settings-btn" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold py-2.5 rounded-xl transition">ບັນທຶກ</button>
                 </div>
             </div>
-
-            <div class="lg:col-span-8">
-                <div class="bg-slate-900/40 border border-slate-800 rounded-2xl p-6 backdrop-blur-sm min-h-[480px]">
-                    <div class="mb-5">
-                        <h2 class="text-lg font-bold text-slate-200">Mandel-Selbee Condensed Covering Combinations</h2>
-                        <p class="text-xs text-slate-400 mt-0.5">Optimized distribution blocks structured to satisfy coverage design guidelines</p>
-                    </div>
-                    
-                    <div id="mandel-selbee-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        </div>
-                </div>
-            </div>
-
         </div>
+
+        <!-- PREMIUM UTILITY: CONFIRMATION MODAL -->
+        <div id="delete-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden transition-all duration-300 opacity-0">
+            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-xs w-full mx-4 shadow-2xl transform scale-95 transition-all duration-300">
+                <div class="text-rose-500 text-2xl mb-2 text-center">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h3 class="font-bold text-base text-slate-100 text-center mb-2">ຢືນຢັນການລຶບ?</h3>
+                <p class="text-xs text-slate-400 text-center mb-6 leading-relaxed">ທ່ານແນ່ໃຈບໍ່ວ່າຕ້ອງການລຶບປະຫວັດການອອກຫວຍນີ້? ການລຶບຈະເຮັດໃຫ້ລະບົບຄຳນວນສະຖິຕິໃໝ່ທັນທີ.</p>
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeDeleteModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold py-2.5 rounded-xl transition">ຍົກເລີກ</button>
+                    <button type="button" id="confirm-delete-btn" class="flex-1 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold py-2.5 rounded-xl transition">ຢືນຢັນລຶບ</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PREMIUM UTILITY: TOAST NOTIFICATIONS -->
+        <div id="toast-notification" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 border border-indigo-500/30 text-slate-100 text-xs px-4 py-3 rounded-xl shadow-2xl transition-all duration-300 transform translate-y-20 opacity-0 z-50 flex items-center gap-2.5 min-w-[280px] justify-center">
+            <span id="toast-icon" class="text-indigo-400"></span>
+            <span id="toast-message" class="font-medium"></span>
+        </div>
+
     </div>
 
     <script>
-        // --- 1. HISTORICAL RUNTIME DATA WINDOW (Oldest -> Newest) ---
-        let historicalDraws = [
-            [12, 45, 67, 89],
-            [23, 56, 78, 12],
-            [45, 89, 23, 11],
-            [12, 78, 56, 99],
-            [15, 34, 72, 88],
-            [23, 45, 89, 12]  // Anchor Reference Row
-        ];
+        // Standard Injected Firebase Configuration Framework
+        const firebaseConfig = {
+            apiKey: "AIzaSyC0qZf7frh9BYjtb6iZnWjfMjMnhucfAhI",
+            authDomain: "lao-lottery-engine.firebaseapp.com",
+            databaseURL: "https://lao-lottery-engine-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "lao-lottery-engine",
+            storageBucket: "lao-lottery-engine.firebasestorage.app",
+            messagingSenderId: "780776961991",
+            appId: "1:780776961991:web:480fef483ee174377e4be2",
+            measurementId: "G-3C8CT0YFYF"
+        };
 
-        // --- 2. MATRIX PROBABILITY MATRIX CALCULATOR ENGINE ---
-        class ProbabilityMatrixEngine {
-            constructor(poolSize = 100, decayRate = 0.02) {
-                this.poolSize = poolSize;
-                this.decayRate = decayRate;
-                this.frequency = new Array(poolSize).fill(0);
-                this.coOccurrence = Array.from({ length: poolSize }, () => new Array(poolSize).fill(0));
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        let currentDigitMode = 2;
+        let frequencyMap = Array(10).fill(0);
+        let highlyFrequentDigits = []; 
+        let databaseLoaded = false;
+        let isHistoryCollapsed = false;
+        let activeDeleteKey = null;
+
+        // Custom Statistical Math Arrays
+        let bayesianWeights = Array(10).fill(0);
+        let markovMatrix = Array(10).fill(0).map(() => Array(10).fill(0));
+        let coOccurrenceMatrix = Array(10).fill(0).map(() => Array(10).fill(0));
+
+        // Traditional Lao Nam Sat Animal mappings for statistical translation
+        const laoAnimalChart = {
+            "01": "ກົວນາໂກ (Guanaco)", "02": "ລູກງົວ (Calf)", "03": "ກະທິງ (Antelope)", "04": "ຈຳພວກຂີ້ກຽດ (Sloth)", "05": "ແມວດຳ (Black Cat)",
+            "06": "ໝາຂາວ (White Dog)", "07": "ໝາດຳ (Black Dog)", "08": "ງົວເຖິກ (Bull)", "09": "ນາກ (Otter)", "10": "ແຮດ (Rhinoceros)",
+            "11": "ໜູ (Rat)", "12": "ອູດ (Dromedary)", "13": "ມ້າລາຍ (Zebra)", "14": "ຮິບໂປ (Hippopotamus)", "15": "ລະມັ່ງ (Gazelle)",
+            "16": "ລູກມ້າ (Foal)", "17": "ລໍ (Mule)", "18": "ໝາຈອກຟ້າ (Blue Fox)", "19": "ແມວນ້ຳ (Seal)", "20": "ຊິນຊິລ່າ (Chinchilla)",
+            "21": "ກະຮອກຂາວ (Ermine)", "22": "ໝູປ່າ (Wild Boar)", "23": "ຄົນຄົວກິນ (Cook)", "24": "ມ້າຂາວ (White Horse)", "25": "ຄວາຍ (Buffalo)",
+            "26": "ຢາມາ (Llama)", "27": "ວິກູນຍາ (Vicuña)", "28": "ແມວປ່າ (Wild Cat)", "29": "ແມວຂາວ (White Cat)", "30": "ວີຊັນ (Mink)",
+            "31": "ເຈຍ (Bat)", "32": "ໝາຈອກເງິນ (Silver Fox)", "33": "ແກະ (Sheep)", "34": "ແກະເຖິກ (Ram)", "35": "ແມວລາຍ (Barcino Cat)",
+            "36": "ກະຮອກ (Squirrel)", "37": "ໂຄອາລ່າ (Koala)", "38": "ເສືອພູເຂົາ (Puma)", "39": "ກະທ້າງ (Lizard)", "40": "ໝີດຳ (Black Bear)",
+            "41": "ໝູ (Pig)", "42": "ແຂ້ (Crocodile)", "43": "ຄັນຄາກ (Toad)", "44": "ກໍລິລ່າ (Gorilla)", "45": "ງົວຜູ້ (Ox)",
+            "46": "ໝາຈອກແດງ (Red Fox)", "47": "ມ້າດຳ (Black Horse)", "48": "ຊິມແປນຊີ (Chimpanzee)", "49": "ໄບຊັນ (Bison)", "50": "ແມວແອງໂກລາ (Angora Cat)",
+            "51": "ຊ່າງໄມ້ (Carpenter)", "52": "ຈິ້ງໂຈ້ (Kangaroo)", "53": "ສິງໂຕທະເລ (Sea Lion)", "54": "ງົວແມ່ (Cow)", "55": "ຊ້າງ (Elephant)",
+            "56": "ໝາປ່າ (Wolf)", "57": "ອູດສອງໜົກ (Camel)", "58": "ກົບ (Frog)", "59": "ເຕົ່າ (Tortoise)", "60": "ໝາໄມ້ (Marten)",
+            "61": "ແມມມອນ (Mammoth)", "62": "ມໍສ (Walrus)", "63": "ສິງໂຕ (Lion)", "64": "ໄຮຢີນ້າ (Hyena)", "65": "ພັງພອນ (Weasel)",
+            "66": "ຄົນຫາປາ (Fisherman)", "67": "ງູຢາຣາຣາ (Yarara Snake)", "68": "ມ້າລາຍດ່າງ (Obero Horse)", "69": "ລາ (Donkey)", "70": "ວິດຄາຊາ (Vizcacha)",
+            "71": "ສົມເສັດ (Tapir)", "72": "ກະຕ່າຍປ່າ (Hare)", "73": "ກະທ້າງໃຫຍ່ (Iguana)", "74": "ເສືອດຳ (Black Panther)", "75": "ເສືອດາວ (Leopard)",
+            "76": "ມັງກອນ (Dragon)", "77": "ຢີຣາຟ (Giraffe)", "78": "ງູເຫຼືອມ (Boa)", "79": "ໝາໄນ (Jackal)", "80": "ເສືອຈາກົວ (Jaguar)",
+            "81": "ກວາງເຣນເດຍ (Reindeer)", "82": "ເສືອໂຄ່ງ (Tiger)", "83": "ໝາຈອກເທົາ (Gray Fox)", "84": "ຈິ້ງຈົກ (Lizard)", "85": "ໝູປ່າເປກາຣີ (Peccary)",
+            "86": "ໝີສີນ້ຳຕານ (Brown Bear)", "87": "ຕົວອ້ານ (Anteater)", "88": "ກະປອມປ່ຽນສີ (Chameleon)", "89": "ໂຕໜູໃຫຍ່ (Rat)", "90": "ແຂ້ເຄແມນ (Caiman)",
+            "91": "ຕົວນິ້ມ (Armadillo)", "92": "ກະຕ່າຍ (Rabbit)", "93": "ໝີຂາວ (White Bear)", "94": "ແຂ້ຢາຄາເຣ (Yacare)", "95": "ມ້າແມ່ (Mare)",
+            "96": "ກວາງ (Deer)", "97": "ມາໝອດ (Marmot)", "98": "ໝີເທົາ (Gray Bear)", "99": "ລີງ (Monkey)"
+        };
+
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+        database.ref(".info/connected").on("value", (snap) => {
+            if (snap.val() === true) {
+                statusDot.className = "h-1.5 w-1.5 rounded-full bg-emerald-400";
+                statusText.innerText = "Engine Live";
+            } else {
+                statusDot.className = "h-1.5 w-1.5 rounded-full bg-rose-400 animate-pulse";
+                statusText.innerText = "Offline";
+            }
+        });
+
+        // Set Today's date as default on load
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('draw-date').value = today;
+            
+            // Check if API key exists in LocalStorage
+            const savedKey = localStorage.getItem('gemini_api_key');
+            if (savedKey) {
+                document.getElementById('api-key-input').value = savedKey;
+            }
+        });
+
+        // Fetch updates from active historical database stream
+        database.ref('lottery_history').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                document.getElementById('total-draws').innerText = `${Object.keys(data).length} draws loaded`;
+                processMandelPool(data);
+                populateHistoryLedger(data);
+                databaseLoaded = true;
+            } else {
+                document.getElementById('total-draws').innerText = "0 draws loaded";
+                document.getElementById('hot-pool').innerText = "[No Data]";
+                document.getElementById('cold-pool').innerText = "Δ Waiting";
+                document.getElementById('history-scroll-container').innerHTML = `
+                    <div id="empty-history-notice" class="text-center py-6 text-sm text-slate-500 italic">
+                        ບໍ່ມີຂໍ້ມູນການອອກຫວຍກ່ອນໜ້ານີ້ໃນລະບົບ.
+                    </div>
+                `;
+                highlyFrequentDigits = [1, 3, 5, 8, 9];
+                databaseLoaded = true;
+                resetMathDashboards();
+            }
+        });
+
+        // Toggle Advanced Math Engine view Tab
+        function switchMathTab(tabName) {
+            ['bayesian', 'markov', 'coc'].forEach(t => {
+                document.getElementById(`math-tab-${t}`).classList.add('hidden');
+                document.getElementById(`tab-btn-${t}`).className = "py-1.5 rounded-lg text-slate-400 transition";
+            });
+
+            document.getElementById(`math-tab-${tabName}`).classList.remove('hidden');
+            let themeColor = "text-amber-400 border border-slate-800/80 bg-slate-900";
+            if(tabName === 'markov') themeColor = "text-emerald-400 border border-slate-800/80 bg-slate-900";
+            if(tabName === 'coc') themeColor = "text-indigo-400 border border-slate-800/80 bg-slate-900";
+            document.getElementById(`tab-btn-${tabName}`).className = `py-1.5 rounded-lg ${themeColor} font-bold transition`;
+        }
+
+        // RESET visual analytical dashboards on empty DB
+        function resetMathDashboards() {
+            document.getElementById('bayesian-bar-container').innerHTML = '<div class="text-[11px] text-slate-500 text-center italic py-2">ລໍຖ້າການເພີ່ມຂໍ້ມູນເພື່ອຄິດໄລ່ Bayesian</div>';
+            document.getElementById('markov-matrix-grid').innerHTML = '<div class="text-[11px] text-slate-500 text-center italic py-2">ລໍຖ້າການເພີ່ມຂໍ້ມູນເພື່ອຄິດໄລ່ Markov</div>';
+            document.getElementById('coc-pairs-container').innerHTML = '<div class="text-[11px] text-slate-500 text-center italic py-2 col-span-2">ລໍຖ້າການເພີ່ມຂໍ້ມູນ Co-Occurrence</div>';
+        }
+
+        function processMandelPool(historyData) {
+            frequencyMap = Array(10).fill(0);
+            
+            // 1. Classical raw frequency
+            Object.values(historyData).forEach(draw => {
+                if(draw.digits_array) {
+                    draw.digits_array.forEach(digit => { frequencyMap[parseInt(digit)]++; });
+                }
+            });
+
+            // Arrange draws in chronological order (oldest to newest) to parse transitions
+            const chronRecords = Object.values(historyData).sort((a, b) => a.draw_date.localeCompare(b.draw_date));
+            const descRecords = [...chronRecords].reverse(); // Newest first
+
+            // 2. Bayesian Recency Weighting Computation
+            // Formula: W_d = sum_over_all_draws( (1 - decay_rate)^age_index * indicator(digit_present) )
+            bayesianWeights = Array(10).fill(0);
+            const decayRate = 0.15; // 15% exponential drop-off per historical draw depth
+            
+            descRecords.forEach((draw, age) => {
+                if (draw.digits_array) {
+                    const weight = Math.pow(1 - decayRate, age);
+                    draw.digits_array.forEach(digit => {
+                        bayesianWeights[parseInt(digit)] += weight;
+                    });
+                }
+            });
+
+            // Draw Bayesian Recency Visualization
+            const maxBWeight = Math.max(...bayesianWeights, 1);
+            let bayesianHTML = '';
+            for(let d=0; d<10; d++) {
+                const normWidth = (bayesianWeights[d] / maxBWeight) * 100;
+                bayesianHTML += `
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="font-mono w-3 font-semibold text-slate-400">${d}</span>
+                        <div class="flex-grow bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-800/40">
+                            <div class="bg-gradient-to-r from-amber-600 to-amber-400 h-full rounded-full" style="width: ${normWidth}%"></div>
+                        </div>
+                        <span class="font-mono text-[9px] w-8 text-right text-slate-500">${bayesianWeights[d].toFixed(2)}</span>
+                    </div>
+                `;
+            }
+            document.getElementById('bayesian-bar-container').innerHTML = bayesianHTML;
+
+            // Sort by Bayesian Recency weights for highly frequent hot digits pool
+            let sortedBayesian = bayesianWeights.map((weight, idx) => ({ digit: idx, weight: weight })).sort((a,b) => b.weight - a.weight);
+            highlyFrequentDigits = sortedBayesian.slice(0, 5).map(item => item.digit);
+            
+            document.getElementById('hot-pool').innerText = `[${highlyFrequentDigits.slice(0,3).join(',')}]`;
+
+            // 3. Markov State Transition Matrix Computation (Tail digit tracking)
+            // Tracing state change of the last digit (index 5 of 6-D draw) across chronological sequence
+            markovMatrix = Array(10).fill(0).map(() => Array(10).fill(0));
+            for (let i = 0; i < chronRecords.length - 1; i++) {
+                if (chronRecords[i].digits_array && chronRecords[i+1].digits_array) {
+                    const currentState = parseInt(chronRecords[i].digits_array[5]);
+                    const nextState = parseInt(chronRecords[i+1].digits_array[5]);
+                    markovMatrix[currentState][nextState]++;
+                }
             }
 
-            calculateMatrices(history) {
-                const totalHistory = history.length;
-                if (totalHistory === 0) return;
+            // Draw Markov Transition Matrix Grid visually
+            let markovHTML = '';
+            for (let row = 0; row < 10; row++) {
+                let rowSum = markovMatrix[row].reduce((sum, val) => sum + val, 0);
+                markovHTML += `<div class="grid grid-cols-11 gap-0.5 text-center items-center">`;
+                markovHTML += `<div class="font-mono text-[9px] text-slate-500 font-bold">${row}</div>`;
+                
+                for (let col = 0; col < 10; col++) {
+                    const count = markovMatrix[row][col];
+                    // Normalize cell probability representation
+                    const probability = rowSum > 0 ? (count / rowSum) : 0;
+                    let bgCol = 'bg-slate-950/60 text-slate-700';
+                    if (count > 0) {
+                        if (probability >= 0.5) bgCol = 'bg-emerald-500/30 text-emerald-300 font-bold';
+                        else if (probability >= 0.25) bgCol = 'bg-emerald-600/20 text-emerald-400';
+                        else bgCol = 'bg-emerald-950/20 text-slate-400';
+                    }
+                    markovHTML += `
+                        <div class="aspect-square flex items-center justify-center text-[8px] font-mono rounded ${bgCol}" title="State ${row} -> ${col}: ${probability.toFixed(2)}">
+                            ${count > 0 ? count : '.'}
+                        </div>
+                    `;
+                }
+                markovHTML += `</div>`;
+            }
+            document.getElementById('markov-matrix-grid').innerHTML = markovHTML;
 
-                // Reset baseline states counters
-                this.frequency.fill(0);
-                this.coOccurrence = Array.from({ length: this.poolSize }, () => new Array(this.poolSize).fill(0));
-
-                history.forEach((draw, idx) => {
-                    // Apply exponential timeline scoring decay
-                    const weight = Math.exp(-this.decayRate * (totalHistory - 1 - idx));
-
-                    draw.forEach(num => { if (num < this.poolSize) this.frequency[num] += weight; });
-
-                    for (let i = 0; i < draw.length; i++) {
-                        for (let j = i + 1; j < draw.length; j++) {
-                            this.coOccurrence[draw[i]][draw[j]] += weight;
-                            this.coOccurrence[draw[j]][draw[i]] += weight;
+            // 4. Co-Occurrence Mapping Theory
+            // Build pairwise occurrences within the same 6-digit draw
+            coOccurrenceMatrix = Array(10).fill(0).map(() => Array(10).fill(0));
+            Object.values(historyData).forEach(draw => {
+                if (draw.digits_array) {
+                    let uniqueDigits = [...new Set(draw.digits_array)];
+                    for (let i = 0; i < uniqueDigits.length; i++) {
+                        for (let j = i + 1; j < uniqueDigits.length; j++) {
+                            let d1 = parseInt(uniqueDigits[i]);
+                            let d2 = parseInt(uniqueDigits[j]);
+                            coOccurrenceMatrix[d1][d2]++;
+                            coOccurrenceMatrix[d2][d1]++;
                         }
                     }
-                });
-            }
-
-            compileRankedPool(lastDraw) {
-                const totalFreq = this.frequency.reduce((a, b) => a + b, 0);
-                const baseProb = this.frequency.map(f => totalFreq > 0 ? f / totalFreq : 0);
-
-                const affinityProb = new Array(this.poolSize).fill(0);
-                lastDraw.forEach(num => {
-                    for (let j = 0; j < this.poolSize; j++) affinityProb[j] += this.coOccurrence[num][j];
-                });
-                const totalAffinity = affinityProb.reduce((a, b) => a + b, 0);
-                if (totalAffinity > 0) affinityProb.forEach((v, i) => affinityProb[i] /= totalAffinity);
-
-                let evaluatedPool = [];
-                for (let i = 0; i < this.poolSize; i++) {
-                    // Blend metrics (50% historical density frequency weighting, 50% spatial pairing affinity)
-                    let score = (0.5 * baseProb[i]) + (0.5 * affinityProb[i]);
-                    if (lastDraw.includes(i)) score *= 0.5; // Apply dampening to prevent instant duplication shifts
-                    evaluatedPool.push({ number: i, score: score });
                 }
-                return evaluatedPool.sort((a, b) => b.score - a.score);
-            }
-        }
-
-        // --- 3. RUNTIME PIPELINE RENDER ---
-        function triggerEnginePipeline() {
-            const engine = new ProbabilityMatrixEngine(100, 0.02);
-            engine.calculateMatrices(historicalDraws);
-
-            const lastDraw = historicalDraws[historicalDraws.length - 1];
-            const rankedPoolOutput = engine.compileRankedPool(lastDraw);
-
-            // Update Header Counts
-            document.getElementById("global-counter-badge").innerText = `${historicalDraws.length} Draws Stored`;
-
-            // Render Timeline Nodes Box
-            const feedContainer = document.getElementById("historical-feed-box");
-            feedContainer.innerHTML = "";
-            [...historicalDraws].reverse().forEach((draw, index) => {
-                const itemIndex = historicalDraws.length - index;
-                const isAnchorNode = index === 0;
-
-                const rowNode = document.createElement("div");
-                rowNode.className = `flex justify-between items-center p-2 rounded-xl border ${isAnchorNode ? 'bg-teal-950/30 border-teal-800/50 text-teal-200' : 'bg-slate-950/40 border-slate-900 text-slate-500'}`;
-                rowNode.innerHTML = `
-                    <span class="text-[10px] uppercase font-bold tracking-wider ${isAnchorNode ? 'text-teal-400' : 'text-slate-600'}">Draw #${String(itemIndex).padStart(2, '0')}</span>
-                    <div class="flex gap-1">
-                        ${draw.map(n => `<span class="px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded font-bold">${String(n).padStart(2, '0')}</span>`).join('')}
-                    </div>
-                `;
-                feedContainer.appendChild(rowNode);
             });
 
-            // Render Mandel-Selbee Covering Blocks Grid Layout
-            const mandelContainer = document.getElementById("mandel-selbee-container");
-            mandelContainer.innerHTML = "";
-            
-            // Collect upper distribution window array entries (Top 12 elements pool)
-            const topCandidatePool = rankedPoolOutput.slice(0, 12).map(i => i.number);
-            
-            for (let b = 0; b < 4; b++) {
-                let comboSet = [];
-                let stepIdx = b;
-                
-                while(comboSet.length < 4) {
-                    let candidateNum = topCandidatePool[stepIdx % topCandidatePool.length];
-                    if(!comboSet.includes(candidateNum)) comboSet.push(candidateNum);
-                    stepIdx = (stepIdx + 2 + comboSet.length) % topCandidatePool.length;
+            // Identify and render top Co-occurring pairs
+            let pairsList = [];
+            for (let i = 0; i < 10; i++) {
+                for (let j = i + 1; j < 10; j++) {
+                    if (coOccurrenceMatrix[i][j] > 0) {
+                        pairsList.push({ p1: i, p2: j, count: coOccurrenceMatrix[i][j] });
+                    }
                 }
-                comboSet.sort((a,b) => a - b);
-                
-                const avgSetScore = comboSet.reduce((sum, n) => sum + rankedPoolOutput.find(item => item.number === n).score, 0) / 4;
+            }
+            pairsList.sort((a,b) => b.count - a.count);
+            let topPairs = pairsList.slice(0, 4);
+            let cocHTML = '';
+            if (topPairs.length > 0) {
+                topPairs.forEach(pair => {
+                    cocHTML += `
+                        <div class="bg-slate-900 border border-slate-800/80 p-2 rounded-lg flex items-center justify-between">
+                            <span class="font-mono text-slate-300 font-bold">${pair.p1} &leftrightarrow; ${pair.p2}</span>
+                            <span class="text-[10px] bg-indigo-500/10 text-indigo-400 px-1.5 py-0.5 rounded font-mono">${pair.count} times</span>
+                        </div>
+                    `;
+                });
+            } else {
+                cocHTML = '<div class="text-[11px] text-slate-500 text-center col-span-2 py-2">ບໍ່ມີຄູ່ທີ່ພົບຮ່ວມກັນເທື່ອ</div>';
+            }
+            document.getElementById('coc-pairs-container').innerHTML = cocHTML;
 
-                const setCard = document.createElement("div");
-                setCard.className = "bg-slate-950/40 border border-slate-800/80 p-4 rounded-xl group hover:border-teal-500/30 transition shadow-inner";
-                setCard.innerHTML = `
-                    <div class="flex justify-between items-center text-[11px] font-mono mb-2.5">
-                        <span class="text-slate-500 font-bold uppercase tracking-wider">Cover Block 0${b+1}</span>
-                        <span class="text-teal-400 font-bold">M-S Metric: ${avgSetScore.toFixed(4)}</span>
-                    </div>
-                    <div class="flex gap-2">
-                        ${comboSet.map(n => `<div class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center font-bold text-sm text-slate-100 group-hover:text-teal-400 transition-colors">${String(n).padStart(2, '0')}</div>`).join('')}
-                    </div>
-                `;
-                mandelContainer.appendChild(setCard);
+            // 5. Harvey Cover Delta Calculation from newest draw
+            if (descRecords.length > 0 && descRecords[0].digits_array) {
+                const arr = descRecords[0].digits_array;
+                let sumDiff = 0;
+                for (let i = 0; i < arr.length - 1; i++) {
+                    sumDiff += Math.abs(arr[i+1] - arr[i]);
+                }
+                const harveyDelta = (sumDiff / (arr.length - 1)).toFixed(2);
+                document.getElementById('cold-pool').innerText = `Δ = ${harveyDelta}`;
+            } else {
+                document.getElementById('cold-pool').innerText = `Δ = 2.50`;
             }
         }
 
-        // --- 4. FORM RECEPTION HANDLER TRANSACTION ---
-        function handleFormSubmit(event) {
-            event.preventDefault();
-            const inputs = event.target.querySelectorAll('input[type="number"]');
-            let newRow = [];
-            
-            inputs.forEach(input => {
-                newRow.push(parseInt(input.value, 10));
-                input.value = ""; // Clear values out fields safely
-            });
+        // Render Database Records to History list visually
+        function populateHistoryLedger(historyData) {
+            const container = document.getElementById('history-scroll-container');
+            container.innerHTML = '';
 
-            historicalDraws.push(newRow);
-            triggerEnginePipeline();
+            const sortedRecords = Object.values(historyData).sort((a, b) => b.draw_date.localeCompare(a.draw_date));
+
+            if(sortedRecords.length === 0) {
+                container.innerHTML = `
+                    <div id="empty-history-notice" class="text-center py-6 text-sm text-slate-500 italic">
+                        ບໍ່ມີຂໍ້ມູນການອອກຫວຍກ່ອນໜ້ານີ້ໃນລະບົບ.
+                    </div>
+                `;
+                return;
+            }
+
+            sortedRecords.forEach(record => {
+                const row = document.createElement('div');
+                row.className = "flex items-center justify-between p-3.5 bg-slate-950 border border-slate-900 rounded-xl";
+                
+                const full6D = record.six_digit || "000000";
+                const lead3D = full6D.substring(0, 3);
+                const mid1D = full6D.substring(3, 4);
+                const tail2D = full6D.substring(4, 6);
+
+                row.innerHTML = `
+                    <div class="flex flex-col">
+                        <span class="text-xs text-slate-400 font-semibold">${record.draw_date}</span>
+                        <div class="text-base font-mono mt-0.5 tracking-wider">
+                            <span class="text-slate-500">${lead3D}</span><span class="text-indigo-400 font-medium">${mid1D}</span><span class="text-amber-400 font-bold">${tail2D}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="text-right flex flex-col text-[10px] font-mono text-slate-500">
+                            <span>3D: <strong class="text-slate-300">${record.three_digit}</strong></span>
+                            <span>2D: <strong class="text-slate-300">${record.two_digit}</strong></span>
+                        </div>
+                        <button type="button" onclick="openDeleteModal('${record.id || record.draw_date.replace(/-/g, '_') + '_draw'}')" class="text-slate-600 hover:text-rose-500 active:scale-95 transition p-1">
+                            <i class="fa-solid fa-trash-can text-sm"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
         }
 
-        // Mount matrix system states on structural initialization loading loops
-        document.addEventListener("DOMContentLoaded", triggerEnginePipeline);
+        // PREMIUM CUSTOM POPUPS / TOASTS
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast-notification');
+            const toastMsg = document.getElementById('toast-message');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastMsg.innerText = message;
+            if (type === 'success') {
+                toastIcon.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>`;
+                toast.className = toast.className.replace(/border-[^\s]+/g, '') + ' border-emerald-500/30';
+            } else if (type === 'error') {
+                toastIcon.innerHTML = `<i class="fa-solid fa-circle-exclamation text-rose-400 text-sm"></i>`;
+                toast.className = toast.className.replace(/border-[^\s]+/g, '') + ' border-rose-500/30';
+            } else {
+                toastIcon.innerHTML = `<i class="fa-solid fa-circle-info text-indigo-400 text-sm"></i>`;
+                toast.className = toast.className.replace(/border-[^\s]+/g, '') + ' border-indigo-500/30';
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // SETTINGS MODAL LOGIC (API KEY)
+        function openSettingsModal() {
+            const modal = document.getElementById('settings-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('div').classList.remove('scale-95');
+                modal.querySelector('div').classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeSettingsModal() {
+            const modal = document.getElementById('settings-modal');
+            modal.classList.add('opacity-0');
+            modal.querySelector('div').classList.remove('scale-100');
+            modal.querySelector('div').classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        document.getElementById('save-settings-btn').addEventListener('click', () => {
+            const keyVal = document.getElementById('api-key-input').value.trim();
+            if (keyVal) {
+                localStorage.setItem('gemini_api_key', keyVal);
+                showToast("ບັນທຶກ API Key ສຳເລັດແລ້ວ!", "success");
+            } else {
+                localStorage.removeItem('gemini_api_key');
+                showToast("ລຶບ API Key ອອກແລ້ວ.", "info");
+            }
+            closeSettingsModal();
+        });
+
+        // DELETE HISTORY RECORD MODAL
+        function openDeleteModal(nodeKey) {
+            activeDeleteKey = nodeKey;
+            const modal = document.getElementById('delete-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('div').classList.remove('scale-95');
+                modal.querySelector('div').classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeDeleteModal() {
+            const modal = document.getElementById('delete-modal');
+            modal.classList.add('opacity-0');
+            modal.querySelector('div').classList.remove('scale-100');
+            modal.querySelector('div').classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                activeDeleteKey = null;
+            }, 300);
+        }
+
+        document.getElementById('confirm-delete-btn').addEventListener('click', () => {
+            if (activeDeleteKey) {
+                database.ref('lottery_history/' + activeDeleteKey).remove()
+                    .then(() => {
+                        showToast("ລຶບຂໍ້ມູນສຳເລັດແລ້ວ!", "success");
+                        closeDeleteModal();
+                    })
+                    .catch(err => {
+                        showToast("ເກີດຂໍ້ຜິດພາດ: " + err.message, "error");
+                        closeDeleteModal();
+                    });
+            }
+        });
+
+        function toggleHistoryCollapse() {
+            const container = document.getElementById('history-scroll-container');
+            const button = document.getElementById('toggle-history-btn');
+            isHistoryCollapsed = !isHistoryCollapsed;
+            if (isHistoryCollapsed) {
+                container.classList.add('hidden');
+                button.innerText = "ສະແດງ";
+            } else {
+                container.classList.remove('hidden');
+                button.innerText = "ຫຍໍ້ເຂົ້າ";
+            }
+        }
+
+        // --- GEMINI PROMPT GENERATION ENGINE ---
+        async function runGeminiAnalysis(date, fullNumber) {
+            const aiPanel = document.getElementById('ai-panel');
+            const aiLoading = document.getElementById('ai-loading');
+            const aiContent = document.getElementById('ai-content');
+
+            aiPanel.classList.remove('hidden');
+            aiLoading.classList.remove('hidden');
+            aiContent.classList.add('hidden');
+            aiContent.innerHTML = '';
+
+            const tail2D = fullNumber.substring(4, 6);
+            const animalName = laoAnimalChart[tail2D] || "ບໍ່ພົບຂໍ້ມູນໃນຕຳລາ";
+
+            // Local API check
+            const geminiApiKey = localStorage.getItem('gemini_api_key');
+            if (!geminiApiKey) {
+                aiLoading.classList.add('hidden');
+                aiContent.innerHTML = `
+                    <div class="text-center p-3 border border-amber-500/20 bg-amber-500/5 rounded-xl space-y-2">
+                        <p class="text-amber-400 font-bold text-xs"><i class="fa-solid fa-key"></i> ກະລຸນາຕັ້ງຄ່າ API Key ກ່ອນ!</p>
+                        <p class="text-[10px] text-slate-400 leading-normal">ກົດທີ່ປຸ່ມຮູບເຟືອງ ⚙️ ດ້ານເທິງຂວາມື ເພື່ອວາງ API Key ຂອງທ່ານ. ຫຼັງຈາກນັ້ນ Gemini ຈະວິເຄາະໃຫ້ໂດຍອັດຕະໂນມັດທັນທີ.</p>
+                    </div>
+                `;
+                aiContent.classList.remove('hidden');
+                return;
+            }
+
+            // Extract statistical context for Gemini
+            const bayesianRep = highlyFrequentDigits.join(', ');
+            const markovDesc = `The tail digit was ${fullNumber.charAt(5)}. In the transition matrix, this state historically leads most often to digit ${getMarkovNextLikely(fullNumber.charAt(5))}.`;
+
+            const promptText = `
+                Analyze this Lao Lottery draw result.
+                Draw Date: ${date}
+                Winning 6-Digit Number: ${fullNumber}
+                
+                Statistical Context:
+                - Bayesian Recency Top Digits (decay weight applied): ${bayesianRep}
+                - Markov chain transition clue: ${markovDesc}
+                
+                Please provide a highly concise, interesting analysis of this result in exactly 3 short paragraphs, written ENTIRELY in beautiful and natural Lao language (ພາສາລາວ):
+                Paragraph 1: Discuss the Traditional Lao Animal Symbolism (ຕຳລາຊັ້ນສັດ) associated with the last 2 digits: "${tail2D}" which represents "${animalName}". Explain what this means in Lao cultural lore, tradition, or belief (lucky/unlucky aspects).
+                Paragraph 2: Analyze the mathematical digit composition in Lao. Comment on the distribution of Odd/Even (ເລກຄູ່/ເລກຄີກ), High/Low (0-4 vs 5-9), and relate the Bayesian recency output (${bayesianRep}) explaining how newer patterns heavily outweigh static classical statistics.
+                Paragraph 3: Connect this to the Markov State Transition Matrix & Co-occurrence results. Suggest which tail states (0-9) look heavily primed or "hot" (ເລກເດັ່ນ/ເລກຮ້ອນ) and which pairs are highly correlated based on the co-occurrence correlations.
+                
+                Keep the tone extremely professional, intriguing, and tailored for a dark-mode mobile dashboard interface. Avoid using external markdown language or complex headers, just output 3 clean, beautiful paragraphs written in natural Lao language.
+            `;
+
+            // Using the active gemini-2.5-flash model
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: promptText }] }],
+                systemInstruction: { parts: [{ text: "You are the advanced analytical advisor of the Mandel-Selbee Lao Lottery engine. Your reports are always concise, mathematically interesting, culturally grounded, and written entirely in natural, elegant, and polite Lao language (ພາສາລາວ)." }] }
+            };
+
+            const maxRetries = 3;
+            let currentDelay = 1000;
+            let lastErrorMsg = "ບໍ່ສາມາດເຊື່ອມຕໍ່ກັບເຊີເວີໄດ້";
+
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errData = await response.json().catch(() => ({}));
+                        lastErrorMsg = errData.error?.message || `HTTP error! status: ${response.status}`;
+                        throw new Error(lastErrorMsg);
+                    }
+
+                    const result = await response.json();
+                    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                    if (text) {
+                        const paragraphs = text.split('\n\n').filter(p => p.trim() !== '');
+                        let formattedHTML = '';
+                        paragraphs.forEach(p => {
+                            formattedHTML += `<p class="mb-2 last:mb-0 text-slate-300">${p}</p>`;
+                        });
+
+                        aiLoading.classList.add('hidden');
+                        aiContent.innerHTML = formattedHTML;
+                        aiContent.classList.remove('hidden');
+                        return;
+                    }
+                } catch (error) {
+                    console.error(`Attempt ${attempt} failed:`, error);
+                    lastErrorMsg = error.message || lastErrorMsg;
+                    if (attempt === maxRetries) {
+                        aiLoading.classList.add('hidden');
+                        aiContent.innerHTML = `
+                            <div class="p-3 border border-rose-500/20 bg-rose-500/5 rounded-xl space-y-2">
+                                <p class="text-rose-400 font-semibold flex items-center gap-1">
+                                    <i class="fa-solid fa-triangle-exclamation"></i> ລະບົບການວິເຄາະຂັດຂ້ອງ!
+                                </p>
+                                <p class="text-[10px] text-slate-400 leading-normal">
+                                    <strong>ລາຍລະອຽດຂໍ້ຜິດພາດ:</strong> ${lastErrorMsg}<br>
+                                    (ກະລຸນາກວດສອບຄວາມຖືກຕ້ອງຂອງ Gemini API Key ຂອງທ່ານຄືນໃໝ່ ຜ່ານປຸ່ມຕັ້ງຄ່າ ⚙️ ດ້ານເທິງຂວາມື)
+                                </p>
+                            </div>
+                        `;
+                        aiContent.classList.remove('hidden');
+                    } else {
+                        await new Promise(resolve => setTimeout(resolve, currentDelay));
+                        currentDelay *= 2;
+                    }
+                }
+            }
+        }
+
+        // Helper function to extract likely transitions for prompting
+        function getMarkovNextLikely(currentDigitStr) {
+            let currentDigit = parseInt(currentDigitStr);
+            if (isNaN(currentDigit) || !markovMatrix) return "N/A";
+            let row = markovMatrix[currentDigit];
+            let maxVal = -1;
+            let likelyDigit = 0;
+            for (let i = 0; i < 10; i++) {
+                if (row[i] > maxVal) {
+                    maxVal = row[i];
+                    likelyDigit = i;
+                }
+            }
+            return maxVal > 0 ? likelyDigit : "none (insufficient data)";
+        }
+
+        // Form Submission to Log Results
+        document.getElementById('draw-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const dateVal = document.getElementById('draw-date').value;
+            const textVal = document.getElementById('six-digit-input').value.trim();
+            const submitBtn = document.getElementById('submit-draw-btn');
+
+            if(textVal.length !== 6 || isNaN(textVal)) {
+                showToast("ກະລຸນາປ້ອນຕົວເລກໃຫ້ຄົບ 6 ຕົວ!", "error");
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin text-xs"></i> ກຳລັງວິເຄາະ...`;
+
+            const payload = {
+                id: dateVal.replace(/-/g, '_') + "_draw",
+                draw_date: dateVal,
+                six_digit: textVal,
+                three_digit: textVal.substring(3, 6),
+                two_digit: textVal.substring(4, 6),
+                digits_array: textVal.split('').map(Number)
+            };
+
+            const nodeKey = payload.id;
+            
+            database.ref('lottery_history/' + nodeKey).set(payload)
+                .then(() => {
+                    document.getElementById('six-digit-input').value = '';
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up text-xs"></i> ຈັດເກັບ & ປະມວນຜົນ`;
+                    
+                    showToast("ບັນທຶກຂໍ້ມູນ ແລະ ອັບເດດລະບົບສຳເລັດ!", "success");
+                    runGeminiAnalysis(dateVal, textVal);
+                })
+                .catch(err => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up text-xs"></i> ຈັດເກັບ & ປະມວນຜົນ`;
+                    showToast("ເກີດຂໍ້ຜິດພາດ: " + err.message, "error");
+                });
+        });
+
+        function setDigitMode(mode) {
+            currentDigitMode = mode;
+            ['mode-2d', 'mode-3d', 'mode-6d'].forEach(id => document.getElementById(id).className = "py-2 rounded-lg");
+            document.getElementById('mode-' + mode + 'd').className = "py-2 rounded-lg text-white bg-slate-800 shadow-sm";
+        }
+
+        // CONDENSATION & COVERING DESIGN GENERATION SCRIPT
+        document.getElementById('generate-btn').addEventListener('click', function() {
+            const container = document.getElementById('tickets-container');
+            container.innerHTML = ''; 
+            
+            let pool = [...highlyFrequentDigits];
+            
+            if (!pool || pool.length < 3) {
+                pool = [0, 2, 4, 7, 9];
+            }
+
+            while(pool.length < 5) {
+                let seed = Math.floor((Math.random() * 10) + new Date().getMilliseconds()) % 10;
+                if (!pool.includes(seed)) {
+                    pool.push(seed);
+                }
+            }
+            
+            let wheelTickets = [];
+
+            if (currentDigitMode === 2) {
+                for(let x = 0; x < pool.length; x++) {
+                    for(let y = 0; y < pool.length; y++) {
+                        if (x !== y) {
+                            wheelTickets.push(`${pool[x]}${pool[y]}`);
+                        }
+                    }
+                }
+                wheelTickets = wheelTickets.sort(() => Math.random() - 0.5);
+                wheelTickets = [...new Set(wheelTickets)].slice(0, 6);
+
+            } else if (currentDigitMode === 3) {
+                for(let i=0; i < pool.length - 2; i++) {
+                    let randIdx = Math.floor(Math.random() * pool.length);
+                    wheelTickets.push(`${pool[i]}${pool[(i+1)%pool.length]}${pool[(i+2)%pool.length]}`);
+                    wheelTickets.push(`${pool[(i+1)%pool.length]}${pool[randIdx]}${pool[i]}`);
+                }
+                wheelTickets = wheelTickets.sort(() => Math.random() - 0.5);
+                wheelTickets = [...new Set(wheelTickets)].slice(0, 5);
+
+            } else {
+                // For 6D System, compile sequences based on Markov favorite transitions or high Co-Occurrence links
+                for(let k = 0; k < 4; k++) {
+                    let ticket = [];
+                    for(let pos = 0; pos < 6; pos++) {
+                        let offset = Math.floor(Math.random() * 3);
+                        let selectionIndex = (k + pos + offset) % pool.length;
+                        ticket.push(pool[selectionIndex]);
+                    }
+                    wheelTickets.push(ticket.join(''));
+                }
+            }
+
+            wheelTickets.forEach((tkt, index) => {
+                const row = document.createElement('div');
+                row.className = "flex justify-between items-center py-1 border-b border-slate-900 last:border-0";
+                row.innerHTML = `<span class="text-slate-500 text-xs">ຊຸດທີ #${index + 1}</span> <span class="text-amber-400 font-bold tracking-widest">${tkt}</span>`;
+                container.appendChild(row);
+            });
+
+            document.getElementById('ticket-count').innerText = `${wheelTickets.length} ຊຸດ`;
+            document.getElementById('output-screen').classList.remove('hidden');
+        });
     </script>
 </body>
 </html>
+
+```
