@@ -3,32 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Hybrid Analysis Dashboard</title>
+    <title>Mandel-Selbee Optimization Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
         .mono { font-family: 'JetBrains Mono', monospace; }
-        /* Custom scrollbar tracking styling for data lists */
+        /* Custom scrollbar tracking for historical lists */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.5); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.4); border-radius: 4px; }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen p-4 lg:p-8">
 
-    <div class="max-w-7xl mx-auto space-y-6">
+    <div class="max-w-6xl mx-auto space-y-6">
         
         <header class="border-b border-slate-800 pb-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
                 <h1 class="text-2xl font-extrabold bg-gradient-to-r from-teal-400 via-cyan-400 to-indigo-400 bg-clip-text text-transparent">
-                    Mandel-Selbee & Markov-Bayesian Combined Terminal
+                    Mandel-Selbee Analysis Terminal
                 </h1>
-                <p class="text-slate-400 text-xs mt-0.5">Dual-Engine Combinatorial Coverages & Multi-State Sequential Logic</p>
+                <p class="text-slate-400 text-xs mt-0.5">Combinatorial Optimization & Strategic Covering Set Generator</p>
             </div>
             <div class="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs mono">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>Active Core Aggregator</span>
+                <span class="w-2 h-2 rounded-full bg-teal-500 animate-pulse"></span>
+                <span>Mandel-Selbee Engine Active</span>
             </div>
         </header>
 
@@ -38,88 +38,212 @@
                 
                 <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 backdrop-blur-sm">
                     <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider mb-4 flex items-center gap-2">
-                        <span>📥</span> Insert New Draw Results
+                        <span>📥</span> Enter Drawing Results
                     </h2>
                     
                     <form id="draw-entry-form" class="space-y-4" onsubmit="handleFormSubmit(event)">
                         <div class="grid grid-cols-4 gap-2">
                             <div>
                                 <label class="block text-[10px] mono text-slate-500 mb-1">Ball 1</label>
-                                <input type="number" min="0" max="99" required class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-xl py-2 text-center text-sm font-bold font-mono outline-none transition" placeholder="00">
+                                <input type="number" min="0" max="99" required class="w-full bg-slate-950 border border-slate-800 focus:border-teal-500 rounded-xl py-2 text-center text-sm font-bold font-mono outline-none transition" placeholder="00">
                             </div>
                             <div>
                                 <label class="block text-[10px] mono text-slate-500 mb-1">Ball 2</label>
-                                <input type="number" min="0" max="99" required class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-xl py-2 text-center text-sm font-bold font-mono outline-none transition" placeholder="00">
+                                <input type="number" min="0" max="99" required class="w-full bg-slate-950 border border-slate-800 focus:border-teal-500 rounded-xl py-2 text-center text-sm font-bold font-mono outline-none transition" placeholder="00">
                             </div>
                             <div>
                                 <label class="block text-[10px] mono text-slate-500 mb-1">Ball 3</label>
-                                <input type="number" min="0" max="99" required class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-xl py-2 text-center text-sm font-bold font-mono outline-none transition" placeholder="00">
+                                <input type="number" min="0" max="99" required class="w-full bg-slate-950 border border-slate-800 focus:border-teal-500 rounded-xl py-2 text-center text-sm font-bold font-mono outline-none transition" placeholder="00">
                             </div>
                             <div>
                                 <label class="block text-[10px] mono text-slate-500 mb-1">Ball 4</label>
-                                <input type="number" min="0" max="99" required class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-xl py-2 text-center text-sm font-bold font-mono outline-none transition" placeholder="00">
+                                <input type="number" min="0" max="99" required class="w-full bg-slate-950 border border-slate-800 focus:border-teal-500 rounded-xl py-2 text-center text-sm font-bold font-mono outline-none transition" placeholder="00">
                             </div>
                         </div>
-                        <button type="submit" class="w-full bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-500 hover:to-cyan-500 text-white font-semibold text-xs py-2.5 rounded-xl transition shadow-md shadow-cyan-950/20 cursor-pointer">
-                            Commit Entry to Historical State
+                        <button type="submit" class="w-full bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-500 hover:to-cyan-500 text-white font-semibold text-xs py-2.5 rounded-xl transition shadow-md cursor-pointer">
+                            Add to Historical Database
                         </button>
                     </form>
                 </div>
 
                 <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
-                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Manual Generation Trigger</h3>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="triggerEnginePipeline()" class="col-span-2 bg-slate-800 border border-slate-700 hover:bg-slate-700/80 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">
-                            🔄 Synchronize & Recalculate Engines
-                        </button>
-                    </div>
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Engine Computations</h3>
+                    <button onclick="triggerEnginePipeline()" class="w-full bg-slate-800 border border-slate-700 hover:bg-slate-700/80 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">
+                        🔄 Recalculate Possible Combinations
+                    </button>
                 </div>
 
                 <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
                     <div class="flex justify-between items-center mb-3">
-                        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Historical Matrix Stream</h3>
+                        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Historical Draws Timeline</h3>
                         <span id="global-counter-badge" class="bg-slate-950 px-2 py-0.5 border border-slate-800 rounded text-[10px] text-slate-400 mono">0 Entries</span>
                     </div>
-                    <div id="historical-feed-box" class="space-y-2 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar font-mono text-xs">
+                    <div id="historical-feed-box" class="space-y-2 max-h-[250px] overflow-y-auto pr-1 custom-scrollbar font-mono text-xs">
                         </div>
                 </div>
             </div>
 
-            <div class="lg:col-span-8 space-y-6">
-                
-                <div class="bg-slate-900/40 border border-slate-800 rounded-2xl p-6 backdrop-blur-sm">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <h2 class="text-lg font-bold text-slate-200">Mandel-Selbee Covering Combinations</h2>
-                            <p class="text-xs text-slate-400 mt-0.5">Optimized structural coverage distribution blocks</p>
-                        </div>
+            <div class="lg:col-span-8">
+                <div class="bg-slate-900/40 border border-slate-800 rounded-2xl p-6 backdrop-blur-sm min-h-[480px]">
+                    <div class="mb-5">
+                        <h2 class="text-lg font-bold text-slate-200">Mandel-Selbee Condensed Covering Combinations</h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Optimized distribution blocks structured to satisfy coverage design guidelines</p>
                     </div>
+                    
                     <div id="mandel-selbee-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         </div>
                 </div>
+            </div>
 
-                <div class="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border border-slate-800/80 rounded-2xl p-6">
-                    <div>
-                        <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2">
-                            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-                            Coherence Engine Analytics (Markov Chain + Bayesian Recency Decay)
-                        </h2>
-                        <p class="text-xs text-slate-400 mt-0.5">Real-time breakdown tracking sequential state shifts, time decay vectors, and pair affinity mapping</p>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. HISTORICAL RUNTIME DATA WINDOW (Oldest -> Newest) ---
+        let historicalDraws = [
+            [12, 45, 67, 89],
+            [23, 56, 78, 12],
+            [45, 89, 23, 11],
+            [12, 78, 56, 99],
+            [15, 34, 72, 88],
+            [23, 45, 89, 12]  // Anchor Reference Row
+        ];
+
+        // --- 2. MATRIX PROBABILITY MATRIX CALCULATOR ENGINE ---
+        class ProbabilityMatrixEngine {
+            constructor(poolSize = 100, decayRate = 0.02) {
+                this.poolSize = poolSize;
+                this.decayRate = decayRate;
+                this.frequency = new Array(poolSize).fill(0);
+                this.coOccurrence = Array.from({ length: poolSize }, () => new Array(poolSize).fill(0));
+            }
+
+            calculateMatrices(history) {
+                const totalHistory = history.length;
+                if (totalHistory === 0) return;
+
+                // Reset baseline states counters
+                this.frequency.fill(0);
+                this.coOccurrence = Array.from({ length: this.poolSize }, () => new Array(this.poolSize).fill(0));
+
+                history.forEach((draw, idx) => {
+                    // Apply exponential timeline scoring decay
+                    const weight = Math.exp(-this.decayRate * (totalHistory - 1 - idx));
+
+                    draw.forEach(num => { if (num < this.poolSize) this.frequency[num] += weight; });
+
+                    for (let i = 0; i < draw.length; i++) {
+                        for (let j = i + 1; j < draw.length; j++) {
+                            this.coOccurrence[draw[i]][draw[j]] += weight;
+                            this.coOccurrence[draw[j]][draw[i]] += weight;
+                        }
+                    }
+                });
+            }
+
+            compileRankedPool(lastDraw) {
+                const totalFreq = this.frequency.reduce((a, b) => a + b, 0);
+                const baseProb = this.frequency.map(f => totalFreq > 0 ? f / totalFreq : 0);
+
+                const affinityProb = new Array(this.poolSize).fill(0);
+                lastDraw.forEach(num => {
+                    for (let j = 0; j < this.poolSize; j++) affinityProb[j] += this.coOccurrence[num][j];
+                });
+                const totalAffinity = affinityProb.reduce((a, b) => a + b, 0);
+                if (totalAffinity > 0) affinityProb.forEach((v, i) => affinityProb[i] /= totalAffinity);
+
+                let evaluatedPool = [];
+                for (let i = 0; i < this.poolSize; i++) {
+                    // Blend metrics (50% historical density frequency weighting, 50% spatial pairing affinity)
+                    let score = (0.5 * baseProb[i]) + (0.5 * affinityProb[i]);
+                    if (lastDraw.includes(i)) score *= 0.5; // Apply dampening to prevent instant duplication shifts
+                    evaluatedPool.push({ number: i, score: score });
+                }
+                return evaluatedPool.sort((a, b) => b.score - a.score);
+            }
+        }
+
+        // --- 3. RUNTIME PIPELINE RENDER ---
+        function triggerEnginePipeline() {
+            const engine = new ProbabilityMatrixEngine(100, 0.02);
+            engine.calculateMatrices(historicalDraws);
+
+            const lastDraw = historicalDraws[historicalDraws.length - 1];
+            const rankedPoolOutput = engine.compileRankedPool(lastDraw);
+
+            // Update Header Counts
+            document.getElementById("global-counter-badge").innerText = `${historicalDraws.length} Draws Stored`;
+
+            // Render Timeline Nodes Box
+            const feedContainer = document.getElementById("historical-feed-box");
+            feedContainer.innerHTML = "";
+            [...historicalDraws].reverse().forEach((draw, index) => {
+                const itemIndex = historicalDraws.length - index;
+                const isAnchorNode = index === 0;
+
+                const rowNode = document.createElement("div");
+                rowNode.className = `flex justify-between items-center p-2 rounded-xl border ${isAnchorNode ? 'bg-teal-950/30 border-teal-800/50 text-teal-200' : 'bg-slate-950/40 border-slate-900 text-slate-500'}`;
+                rowNode.innerHTML = `
+                    <span class="text-[10px] uppercase font-bold tracking-wider ${isAnchorNode ? 'text-teal-400' : 'text-slate-600'}">Draw #${String(itemIndex).padStart(2, '0')}</span>
+                    <div class="flex gap-1">
+                        ${draw.map(n => `<span class="px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded font-bold">${String(n).padStart(2, '0')}</span>`).join('')}
                     </div>
+                `;
+                feedContainer.appendChild(rowNode);
+            });
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                        <div class="bg-slate-950/60 border border-slate-800 p-4 rounded-xl space-y-3">
-                            <h3 class="text-xs font-bold text-cyan-400 uppercase tracking-wider border-b border-slate-800 pb-2">Top Individual Hot Paths</h3>
-                            <div id="coherence-hot-paths" class="space-y-2.5">
-                                </div>
-                        </div>
+            // Render Mandel-Selbee Covering Blocks Grid Layout
+            const mandelContainer = document.getElementById("mandel-selbee-container");
+            mandelContainer.innerHTML = "";
+            
+            // Collect upper distribution window array entries (Top 12 elements pool)
+            const topCandidatePool = rankedPoolOutput.slice(0, 12).map(i => i.number);
+            
+            for (let b = 0; b < 4; b++) {
+                let comboSet = [];
+                let stepIdx = b;
+                
+                while(comboSet.length < 4) {
+                    let candidateNum = topCandidatePool[stepIdx % topCandidatePool.length];
+                    if(!comboSet.includes(candidateNum)) comboSet.push(candidateNum);
+                    stepIdx = (stepIdx + 2 + comboSet.length) % topCandidatePool.length;
+                }
+                comboSet.sort((a,b) => a - b);
+                
+                const avgSetScore = comboSet.reduce((sum, n) => sum + rankedPoolOutput.find(item => item.number === n).score, 0) / 4;
 
-                        <div class="bg-slate-950/60 border border-slate-800 p-4 rounded-xl space-y-3 font-mono text-xs">
-                            <h3 class="text-xs font-bold text-teal-400 uppercase tracking-wider border-b border-slate-800 pb-2 font-sans">Active Vector Parameters</h3>
-                            <div class="space-y-2">
-                                <div class="flex justify-between p-2 bg-slate-900/40 border border-slate-900 rounded">
-                                    <span class="text-slate-500">Bayesian Decay Factor (λ)</span>
-                                    <span class="text-slate-300 font-bold">0.02 (Exponential)</span>
-                                </div>
-                                <div class="flex justify-between p-2 bg-slate-900/40 border border-slate-900 rounded">
-                                    <span class="text-slate-500">Markov Link Status</span>
+                const setCard = document.createElement("div");
+                setCard.className = "bg-slate-950/40 border border-slate-800/80 p-4 rounded-xl group hover:border-teal-500/30 transition shadow-inner";
+                setCard.innerHTML = `
+                    <div class="flex justify-between items-center text-[11px] font-mono mb-2.5">
+                        <span class="text-slate-500 font-bold uppercase tracking-wider">Cover Block 0${b+1}</span>
+                        <span class="text-teal-400 font-bold">M-S Metric: ${avgSetScore.toFixed(4)}</span>
+                    </div>
+                    <div class="flex gap-2">
+                        ${comboSet.map(n => `<div class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center font-bold text-sm text-slate-100 group-hover:text-teal-400 transition-colors">${String(n).padStart(2, '0')}</div>`).join('')}
+                    </div>
+                `;
+                mandelContainer.appendChild(setCard);
+            }
+        }
+
+        // --- 4. FORM RECEPTION HANDLER TRANSACTION ---
+        function handleFormSubmit(event) {
+            event.preventDefault();
+            const inputs = event.target.querySelectorAll('input[type="number"]');
+            let newRow = [];
+            
+            inputs.forEach(input => {
+                newRow.push(parseInt(input.value, 10));
+                input.value = ""; // Clear values out fields safely
+            });
+
+            historicalDraws.push(newRow);
+            triggerEnginePipeline();
+        }
+
+        // Mount matrix system states on structural initialization loading loops
+        document.addEventListener("DOMContentLoaded", triggerEnginePipeline);
+    </script>
+</body>
+</html>
