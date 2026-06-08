@@ -3,13 +3,211 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mandel-Selbee Engine - Optimized Numbers</title>
+    <title>Lao Lottery Advanced Combinatorial Engine</title>
+    <!-- Tailwind CSS for Premium Dark UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-        import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+    <!-- Firebase App and Database SDKs (Compat Version) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen antialiased selection:bg-indigo-500 selection:text-white">
 
-        // ⚙️ ກະລຸນາປ່ຽນຄ່າເຫຼົ່ານີ້ໃຫ້ເປັນຂໍ້ມູນ Firebase Project ຂອງທ່ານຕົວຈິງ
+    <div class="max-w-md mx-auto min-h-screen flex flex-col justify-between p-4 pb-24 relative">
+        
+        <!-- Header -->
+        <header class="mb-6 pt-2 flex items-center justify-between border-b border-slate-800 pb-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-gradient-to-tr from-amber-500 to-orange-500 p-2.5 rounded-xl shadow-lg">
+                    <i class="fa-solid fa-calculator text-xl text-slate-950"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg tracking-wide">Mandel-Selbee Engine</h1>
+                    <p class="text-xs text-amber-400 font-medium tracking-wider uppercase">Combinatorial & AI Analytics</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <!-- Settings Button to input API Key -->
+                <button type="button" onclick="openSettingsModal()" class="text-slate-400 hover:text-indigo-400 transition p-2 bg-slate-900 rounded-xl border border-slate-800 flex items-center justify-center">
+                    <i class="fa-solid fa-gear text-sm"></i>
+                </button>
+                <div id="db-status" class="flex items-center gap-2 px-2.5 py-1 rounded-full bg-slate-800 text-xs font-semibold">
+                    <span id="status-dot" class="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse"></span> <span id="status-text">Connecting</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="space-y-6 flex-grow">
+            
+            <!-- SECTION 1: DATA INPUT FORM -->
+            <section class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center gap-2 mb-4">
+                    <i class="fa-solid fa-square-plus text-amber-400"></i>
+                    <h2 class="font-semibold text-sm uppercase tracking-wider text-slate-300">ບັນທຶກຜົນການອອກຫວຍລ້າສຸດ</h2>
+                </div>
+                <form id="draw-form" class="space-y-4">
+                    <div>
+                        <label class="block text-xs text-slate-400 font-medium mb-1.5">ວັນທີອອກຫວຍຢ່າງເປັນທາງການ</label>
+                        <input type="date" id="draw-date" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 font-medium mb-1.5">ເລກອອກ 6 ຕົວຢ່າງເປັນທາງການ</label>
+                        <div class="relative">
+                            <input type="text" id="six-digit-input" maxlength="6" pattern="\d{6}" required placeholder="ຕົວຢ່າງ: 762722" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-12 py-3 text-lg font-mono tracking-widest text-amber-400 focus:outline-none focus:border-amber-500">
+                            <div class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 font-mono text-xs">6D</div>
+                        </div>
+                    </div>
+                    <button type="submit" id="submit-draw-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-up text-xs"></i> ຈັດເກັບ & ປະມວນຜົນ
+                    </button>
+                </form>
+            </section>
+
+            <!-- SECTION 1.5: INSTANT GEMINI ANALYSIS PANEL -->
+            <section id="ai-panel" class="bg-gradient-to-br from-indigo-950/40 to-slate-900/80 border border-indigo-500/20 rounded-2xl p-5 shadow-xl hidden">
+                <div class="flex items-center justify-between mb-3 border-b border-indigo-500/10 pb-2">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-brain text-indigo-400"></i>
+                        <h2 class="font-bold text-sm text-indigo-300 uppercase tracking-wider">ການວິເຄາະທັນທີໂດຍ AI</h2>
+                    </div>
+                    <span class="text-[9px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded font-mono">Gemini-2.5-Flash</span>
+                </div>
+                
+                <!-- Loading State Spinner -->
+                <div id="ai-loading" class="flex flex-col items-center justify-center py-6 space-y-2">
+                    <i class="fa-solid fa-circle-notch text-2xl text-amber-400 animate-spin"></i>
+                    <p class="text-xs text-slate-400 italic text-center">Gemini ກຳລັງວິເຄາະຮູບແບບສະຖິຕິ ແລະ ຕຳລາຊັ້ນສັດ...</p>
+                </div>
+
+                <!-- Analysis Text Output Box -->
+                <div id="ai-content" class="text-xs text-slate-300 leading-relaxed space-y-3 hidden">
+                    <!-- Markdown/Plain insight string injected here -->
+                </div>
+            </section>
+
+            <!-- SECTION 2: HISTORICAL STATS OVERVIEW -->
+            <section class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-semibold text-xs uppercase tracking-wider text-slate-400">ສະຖານະຖານຂໍ້ມູນ</h2>
+                    <span id="total-draws" class="text-xs font-mono bg-slate-950 px-2 py-0.5 rounded text-indigo-400">0 draws loaded</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Mandel Hot Pool</div>
+                        <div id="hot-pool" class="font-mono text-emerald-400 font-bold">[...]</div>
+                    </div>
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Harvey Cover Delta</div>
+                        <div id="cold-pool" class="font-mono text-indigo-400 font-bold">Δ Syncing</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 3: RESULT HISTORY LOGS -->
+            <section class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-indigo-400"></i>
+                        <h2 class="font-semibold text-sm text-slate-200">ປະຫວັດການອອກຫວຍ</h2>
+                    </div>
+                    <button type="button" id="toggle-history-btn" onclick="toggleHistoryCollapse()" class="text-xs text-indigo-400 font-semibold hover:underline">
+                        ຫຍໍ້ເຂົ້າ
+                    </button>
+                </div>
+
+                <div id="history-scroll-container" class="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                    <div id="empty-history-notice" class="text-center py-6 text-sm text-slate-500 italic">
+                        ບໍ່ມີຂໍ້ມູນການອອກຫວຍກ່ອນໜ້ານີ້ໃນລະບົບ.
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 4: CONDENSED GENERATOR SCREEN -->
+            <section class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-layer-group text-amber-400"></i>
+                    <h2 class="font-semibold text-sm text-slate-200">ການຈັດກຸ່ມແບບປະສົມປະສານ</h2>
+                </div>
+
+                <!-- Mode Selection -->
+                <div class="grid grid-cols-3 gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-semibold text-center text-slate-400">
+                    <button type="button" onclick="setDigitMode(2)" id="mode-2d" class="py-2 rounded-lg text-white bg-slate-800">2D (ຄໍ້າປະກັນ)</button>
+                    <button type="button" onclick="setDigitMode(3)" id="mode-3d" class="py-2 rounded-lg">3D ຫຍໍ້ກຸ່ມ</button>
+                    <button type="button" onclick="setDigitMode(6)" id="mode-6d" class="py-2 rounded-lg">6D ລະບົບ</button>
+                </div>
+
+                <button type="button" id="generate-btn" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold text-sm py-3.5 rounded-xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-cubes"></i> ສ້າງຊຸດຕົວເລກທີ່ເໝາະສົມທີ່ສຸດ
+                </button>
+
+                <!-- Output Area for Covering Design Tickets -->
+                <div id="output-screen" class="space-y-3 hidden">
+                    <div class="text-xs text-slate-400 font-bold uppercase tracking-wider flex justify-between">
+                        <span>ຜົນການອອກແບບການປົກຄຸມແບບ Harvey</span>
+                        <span class="text-amber-400 font-mono" id="ticket-count">0 ຊຸດ</span>
+                    </div>
+                    <div id="tickets-container" class="bg-slate-950 border border-slate-800 rounded-xl p-3 font-mono text-sm space-y-1.5 max-h-48 overflow-y-auto">
+                        <!-- Dynamically generated ticket matrices live here -->
+                    </div>
+                    <p class="text-[11px] text-slate-500 italic"><i class="fa-solid fa-circle-info"></i> ການຄໍ້າປະກັນທາງຄະນິດສາດຂອງ Mandel: ຖ້າຕົວເລກໃນກຸ່ມຮ້ອນຖືກອອກ, ຢ່າງໜ້ອຍໜຶ່ງໃນຊຸດນີ້ຈະມີລາງວັນຢ່າງແນ່ນອນ.</p>
+                    <p class="text-[10px] text-amber-500/80 italic mt-1"><i class="fa-solid fa-lock"></i> ຜົນຄຳນວນຖືກລັອກຕາມຖານຂໍ້ມູນລ່າສຸດ (ຈະປ່ຽນແປງເມື່ອມີຜົນຫວຍໃໝ່ເທົ່ານັ້ນ).</p>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- PREMIUM UTILITY: SYSTEM SETTINGS MODAL (FOR API KEY CONFIG) -->
+        <div id="settings-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden transition-all duration-300 opacity-0">
+            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-xs w-full mx-4 shadow-2xl transform scale-95 transition-all duration-300">
+                <div class="text-indigo-400 text-2xl mb-2 text-center">
+                    <i class="fa-solid fa-key"></i>
+                </div>
+                <h3 class="font-bold text-base text-slate-100 text-center mb-2">ຕັ້ງຄ່າ Gemini API Key</h3>
+                <p class="text-xs text-slate-400 text-center mb-4 leading-relaxed">ກະລຸນາໃສ່ API Key ຂອງທ່ານເພື່ອໃຫ້ AI ສາມາດວິເຄາະຜົນຫວຍໄດ້ທັນທີ. ຂໍ້ມູນຈະຖືກເກັບໄວ້ໃນເຄື່ອງຂອງທ່ານຢ່າງປອດໄພ.</p>
+                
+                <div class="mb-4">
+                    <input type="password" id="api-key-input" placeholder="AIzaSy..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 font-mono">
+                    <p class="text-[10px] text-slate-500 mt-1 leading-normal">
+                        * ສ້າງ API Key ຟຣີໄດ້ທີ່ Google AI Studio (aistudio.google.com)
+                    </p>
+                </div>
+
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeSettingsModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold py-2.5 rounded-xl transition">ຍົກເລີກ</button>
+                    <button type="button" id="save-settings-btn" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold py-2.5 rounded-xl transition">ບັນທຶກ</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PREMIUM UTILITY: CONFIRMATION MODAL -->
+        <div id="delete-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden transition-all duration-300 opacity-0">
+            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-xs w-full mx-4 shadow-2xl transform scale-95 transition-all duration-300">
+                <div class="text-rose-500 text-2xl mb-2 text-center">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h3 class="font-bold text-base text-slate-100 text-center mb-2">ຢືນຢັນການລຶບ?</h3>
+                <p class="text-xs text-slate-400 text-center mb-6 leading-relaxed">ທ່ານແນ່ໃຈບໍ່ວ່າຕ້ອງການລຶບປະຫວັດການອອກຫວຍນີ້? ການລຶບຈະເຮັດໃຫ້ລະບົບຄຳນວນສະຖິຕິໃໝ່ທັນທີ.</p>
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeDeleteModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold py-2.5 rounded-xl transition">ຍົກເລີກ</button>
+                    <button type="button" id="confirm-delete-btn" class="flex-1 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold py-2.5 rounded-xl transition">ຢືນຢັນລຶບ</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PREMIUM UTILITY: TOAST NOTIFICATIONS -->
+        <div id="toast-notification" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 border border-indigo-500/30 text-slate-100 text-xs px-4 py-3 rounded-xl shadow-2xl transition-all duration-300 transform translate-y-20 opacity-0 z-50 flex items-center gap-2.5 min-w-[280px] justify-center">
+            <span id="toast-icon" class="text-indigo-400"></span>
+            <span id="toast-message" class="font-medium"></span>
+        </div>
+
+    </div>
+
+    <script>
+        // Standard Injected Firebase Configuration Framework
         const firebaseConfig = {
             apiKey: "AIzaSyC0qZf7frh9BYjtb6iZnWjfMjMnhucfAhI",
             authDomain: "lao-lottery-engine.firebaseapp.com",
@@ -21,217 +219,509 @@
             measurementId: "G-3C8CT0YFYF"
         };
 
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
 
-        // -------------------------------------------------------------
-        // 🧮 Logic: ຟັງຊັນສ້າງຕົວເລກໃຫ້ໄດ້ຄ່າ Delta ຕາມທີ່ກຳນົດ
-        // -------------------------------------------------------------
-        function generateNumbersForDelta(targetDelta) {
-            let attempts = 0;
-            while (attempts < 1000) {
-                let nums = Array.from({length: 6}, () => Math.floor(Math.random() * 10));
-                let totalDiff = 0;
-                for (let i = 0; i < 5; i++) {
-                    totalDiff += Math.abs(nums[i+1] - nums[i]);
-                }
-                let calcDelta = totalDiff / 5;
-                
-                // ອະນຸຍາດໃຫ້ມີຄ່າຄາດເຄື່ອນໄດ້ເລັກນ້ອຍ ±0.2
-                if (Math.abs(calcDelta - targetDelta) <= 0.2) {
-                    return nums;
-                }
-                attempts++;
+        let currentDigitMode = 2;
+        let frequencyMap = Array(10).fill(0);
+        let highlyFrequentDigits = []; 
+        let databaseLoaded = false;
+        let isHistoryCollapsed = false;
+        let activeDeleteKey = null;
+        let currentDatabaseSeed = 12345; // Seed and lock candidate output stably
+
+        // Traditional Lao Nam Sat Animal mappings for statistical translation
+        const laoAnimalChart = {
+            "01": "ກົວນາໂກ (Guanaco)", "02": "ລູກງົວ (Calf)", "03": "ກະທິງ (Antelope)", "04": "ຈຳພວກຂີ້ກຽດ (Sloth)", "05": "ແມວດຳ (Black Cat)",
+            "06": "ໝາຂາວ (White Dog)", "07": "ໝາດຳ (Black Dog)", "08": "ງົວເຖິກ (Bull)", "09": "ນາກ (Otter)", "10": "ແຮດ (Rhinoceros)",
+            "11": "ໜູ (Rat)", "12": "ອູດ (Dromedary)", "13": "ມ້າລາຍ (Zebra)", "14": "ຮິບໂປ (Hippopotamus)", "15": "ລະມັ່ງ (Gazelle)",
+            "16": "ລູກມ້າ (Foal)", "17": "ລໍ (Mule)", "18": "ໝາຈອກຟ້າ (Blue Fox)", "19": "ແມວນ້ຳ (Seal)", "20": "ชິນຊິລ່າ (Chinchilla)",
+            "21": "ກະຮອກຂາວ (Ermine)", "22": "ໝູປ່າ (Wild Boar)", "23": "ຄົນຄົວກິນ (Cook)", "24": "ມ້າຂາວ (White Horse)", "25": "ຄວາຍ (Buffalo)",
+            "26": "ຢາມາ (Llama)", "27": "ວິກູນຍາ (Vicuña)", "28": "ແມວປ່າ (Wild Cat)", "29": "ແມວຂາວ (White Cat)", "30": "ວີຊັນ (Mink)",
+            "31": "ເຈຍ (Bat)", "32": "ໝາຈອກເງິນ (Silver Fox)", "33": "ແກະ (Sheep)", "34": "ແກະເຖິກ (Ram)", "35": "ແມວລາຍ (Barcino Cat)",
+            "36": "ກະຮອກ (Squirrel)", "37": "ໂຄອາລ່າ (Koala)", "38": "ເສືອພູເຂົາ (Puma)", "39": "ກະທ້າງ (Lizard)", "40": "ໝີດຳ (Black Bear)",
+            "41": "ໝູ (Pig)", "42": "ແຂ້ (Crocodile)", "43": "ຄັນຄາກ (Toad)", "44": "ກໍລິລ່າ (Gorilla)", "45": "ງົວຜູ້ (Ox)",
+            "46": "ໝາຈອກແດງ (Red Fox)", "47": "ມ້າດຳ (Black Horse)", "48": "ຊິມແປນຊີ (Chimpanzee)", "49": "ໄບຊັນ (Bison)", "50": "ແມວແອງໂກລາ (Angora Cat)",
+            "51": "ຊ່າງໄມ້ (Carpenter)", "52": "ຈິ້ງໂຈ້ (Kangaroo)", "53": "ສິງໂຕທະເລ (Sea Lion)", "54": "ງົວແມ່ (Cow)", "55": "ຊ້າງ (Elephant)",
+            "56": "ໝາປ່າ (Wolf)", "57": "ອູດສອງໜົກ (Camel)", "58": "ກົບ (Frog)", "59": "ເຕົ່າ (Tortoise)", "60": "ໝາໄມ້ (Marten)",
+            "61": "ແມມມອນ (Mammoth)", "62": "ມໍສ (Walrus)", "63": "ສິງໂຕ (Lion)", "64": "ໄຮຢີນ້າ (Hyena)", "65": "ພັງພອນ (Weasel)",
+            "66": "ຄົນຫາປາ (Fisherman)", "67": "ງູຢາຣາຣາ (Yarara Snake)", "68": "ມ້າລາຍດ່າງ (Obero Horse)", "69": "ລາ (Donkey)", "70": "ວິດຄາຊາ (Vizcacha)",
+            "71": "ສົມເສັດ (Tapir)", "72": "ກະຕ່າຍປ່າ (Hare)", "73": "ກະທ້າງໃຫຍ່ (Iguana)", "74": "ເສືອດຳ (Black Panther)", "75": "ເສືອດາວ (Leopard)",
+            "76": "ມັງກອນ (Dragon)", "77": "ຢີຣາຟ (Giraffe)", "78": "ງູເຫຼືອມ (Boa)", "79": "ໝາໄນ (Jackal)", "80": "ເສືອຈາກົວ (Jaguar)",
+            "81": "ກວາງເຣນເດຍ (Reindeer)", "82": "ເສືອໂຄ່ງ (Tiger)", "83": "ໝາຈອກເທົາ (Gray Fox)", "84": "ຈິ້ງຈົກ (Lizard)", "85": "ໝູປ່າເປກາຣີ (Peccary)",
+            "86": "ໝີສີນ້ຳຕານ (Brown Bear)", "87": "ຕົວອ້ານ (Anteater)", "88": "ກະປອມປ່ຽນສີ (Chameleon)", "89": "ໂຕໜູໃຫຍ່ (Rat)", "90": "ແຂ້ເຄແມນ (Caiman)",
+            "91": "ຕົວນິ້ມ (Armadillo)", "92": "ກະຕ່າຍ (Rabbit)", "93": "ໝີຂາວ (White Bear)", "94": "ແຂ້ຢາຄາເຣ (Yacare)", "95": "ມ້າແມ່ (Mare)",
+            "96": "ກວາງ (Deer)", "97": "ມາໝອດ (Marmot)", "98": "ໝີເທົາ (Gray Bear)", "99": "ລີງ (Monkey)"
+        };
+
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+        database.ref(".info/connected").on("value", (snap) => {
+            if (snap.val() === true) {
+                statusDot.className = "h-1.5 w-1.5 rounded-full bg-emerald-400";
+                statusText.innerText = "Engine Live";
+            } else {
+                statusDot.className = "h-1.5 w-1.5 rounded-full bg-rose-400 animate-pulse";
+                statusText.innerText = "Offline";
             }
-            return [7, 4, 1, 4, 6, 9]; // ຕົວເລກ Base ຖ້າຄຳນວນບໍ່ທັນ
-        }
+        });
 
-        // -------------------------------------------------------------
-        // 🚀 Main Process: ຟັງຊັນຫຼັກໃນການຈັດການຕົວເລກ
-        // -------------------------------------------------------------
-        async function handleOptimize() {
-            const deltaInput = parseFloat(document.getElementById('delta-input').value);
-            const resultDisplay = document.getElementById('result-display');
-            const statusDisplay = document.getElementById('status-message');
-
-            if (isNaN(deltaInput)) {
-                alert("ກະລຸນາປ້ອນຄ່າ Delta ກ່ອນ!");
-                return;
-            }
-
-            // ສົມມຸດ ID ຂອງຜູ້ໃຊ້ (ໃນລະບົບຈິງສາມາດປ່ຽນເປັນ User ID ຈາກ Firebase Auth ໄດ້)
-            const userId = "current_user_session"; 
-            const dbRef = ref(db);
-
-            try {
-                // 🔍 1. ກວດສອບຂໍ້ມູນຫຼ້າສຸດທີ່ເຄີຍບັນທຶກໄວ້ໃນ Firebase
-                const snapshot = await get(child(dbRef, `users/${userId}`));
-                
-                if (snapshot.exists()) {
-                    const userData = snapshot.val();
-                    
-                    // 🕵️‍♂️ ຖ້າຄ່າ Delta ໃໝ່ທີ່ປ້ອນ ເທົ່າກັບຄ່າ Delta ທີ່ເຄີຍຄຳນວນໄວ້ແລ້ວ
-                    if (userData.current_delta === deltaInput && userData.locked_numbers) {
-                        // ສະແດງເລກຊຸດເດີມ ບໍ່ປ່ຽນແປງ
-                        displayNumbers(userData.locked_numbers);
-                        statusDisplay.innerText = "🔒 ໃຊ້ຕົວເລກຊຸດເດີມ (ຄ່າ Delta ບໍ່ປ່ຽນແປງ)";
-                        statusDisplay.style.color = "#ff9800";
-                        return; // ຈົບການເຮັດວຽກທັນທີ
-                    }
-                }
-
-                // 🔄 2. ຖ້າເປັນຄ່າ Delta ໃໝ່ ຫຼື ຍັງບໍ່ເຄີຍມີຂໍ້ມູນ, ໃຫ້ຄຳນວນໃໝ່
-                statusDisplay.innerText = "⚡ ກຳລັງຄຳນວນຕົວເລກໃໝ່...";
-                statusDisplay.style.color = "#4caf50";
-                
-                const newNumbers = generateNumbersForDelta(deltaInput);
-
-                // 💾 3. ບັນທຶກຄ່າ Delta ໃໝ່ ແລະ ເລກຊຸດໃໝ່ລົງ Firebase ເພື່ອລັອກໄວ້
-                await set(ref(db, `users/${userId}`), {
-                    current_delta: deltaInput,
-                    locked_numbers: newNumbers,
-                    updated_at: new Date().toISOString()
-                });
-
-                // ສະແດງຜົນເລກໃໝ່
-                displayNumbers(newNumbers);
-                statusDisplay.innerText = "🎯 ສ້າງຕົວເລກໃໝ່ ແລະ ລັອກຄ່າຮຽບຮ້ອຍແລ້ວ!";
-                statusDisplay.style.color = "#4caf50";
-
-            } catch (error) {
-                console.error("Firebase Error:", error);
-                statusDisplay.innerText = "❌ ເກີດຂໍ້ຜິດພາດໃນການເຊື່ອມຕໍ່ລະບົບ.";
-                statusDisplay.style.color = "#f44336";
-            }
-        }
-
-        // ຟັງຊັນຊ່ວຍໃນການສະແດງຜົນຕົວເລກເທິງໜ້າຈໍ
-        function displayNumbers(numArray) {
-            const container = document.getElementById('result-display');
-            container.innerHTML = ''; // ລ້າງຄ່າເກົ່າ
+        // Set Today's date as default on load
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('draw-date').value = today;
             
-            numArray.forEach(num => {
-                const ball = document.createElement('div');
-                ball.className = 'number-ball';
-                ball.innerText = num;
-                container.appendChild(ball);
+            // Check if API key exists in LocalStorage
+            const savedKey = localStorage.getItem('gemini_api_key');
+            if (savedKey) {
+                document.getElementById('api-key-input').value = savedKey;
+            }
+        });
+
+        // Fetch updates from active historical database stream
+        database.ref('lottery_history').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                document.getElementById('total-draws').innerText = `${Object.keys(data).length} draws loaded`;
+                processMandelPool(data);
+                populateHistoryLedger(data);
+                databaseLoaded = true;
+            } else {
+                document.getElementById('total-draws').innerText = "0 draws loaded";
+                document.getElementById('hot-pool').innerText = "[No Data]";
+                document.getElementById('cold-pool').innerText = "Δ Waiting";
+                document.getElementById('history-scroll-container').innerHTML = `
+                    <div id="empty-history-notice" class="text-center py-6 text-sm text-slate-500 italic">
+                        ບໍ່ມີຂໍ້ມູນການອອກຫວຍກ່ອນໜ້ານີ້ໃນລະບົບ.
+                    </div>
+                `;
+                highlyFrequentDigits = [1, 3, 5, 8, 9];
+                currentDatabaseSeed = 12345;
+                databaseLoaded = true;
+            }
+        });
+
+        function processMandelPool(historyData) {
+            frequencyMap = Array(10).fill(0);
+            Object.values(historyData).forEach(draw => {
+                if(draw.digits_array) {
+                    draw.digits_array.forEach(digit => { frequencyMap[parseInt(digit)]++; });
+                }
+            });
+
+            let sorted = frequencyMap.map((count, idx) => ({ digit: idx, count: count })).sort((a,b) => b.count - a.count);
+            highlyFrequentDigits = sorted.slice(0, 5).map(item => item.digit);
+            
+            document.getElementById('hot-pool').innerText = `[${highlyFrequentDigits.slice(0,3).join(',')}]`;
+            
+            // ຄຳນວນຄ່າດັດສະນີການກະຈາຍຕົວຂອງ James Harvey ຈາກຜົນການອອກຫວຍລ່າສຸດ
+            const sortedRecords = Object.values(historyData).sort((a, b) => b.draw_date.localeCompare(a.draw_date));
+            if (sortedRecords.length > 0 && sortedRecords[0].digits_array) {
+                const arr = sortedRecords[0].digits_array;
+                let sumDiff = 0;
+                for (let i = 0; i < arr.length - 1; i++) {
+                    sumDiff += Math.abs(arr[i+1] - arr[i]);
+                }
+                const harveyDelta = (sumDiff / (arr.length - 1)).toFixed(2);
+                document.getElementById('cold-pool').innerText = `Δ = ${harveyDelta}`;
+                
+                // ສ້າງ Seed ທີ່ຄົງທີ່ຈາກຜົນການອອກຫວຍລ່າສຸດ ແລະ ຈຳນວນຜົນຫວຍທັງໝົດ
+                const seedStr = sortedRecords[0].draw_date + "_" + sortedRecords[0].six_digit + "_" + sortedRecords.length;
+                let hash = 0;
+                for (let i = 0; i < seedStr.length; i++) {
+                    hash = (hash << 5) - hash + seedStr.charCodeAt(i);
+                    hash |= 0;
+                }
+                currentDatabaseSeed = Math.abs(hash);
+            } else {
+                document.getElementById('cold-pool').innerText = `Δ = 2.50`;
+                currentDatabaseSeed = 12345;
+            }
+        }
+
+        // Render Database Records to History list visually
+        function populateHistoryLedger(historyData) {
+            const container = document.getElementById('history-scroll-container');
+            container.innerHTML = ''; // Reset container content
+
+            const sortedRecords = Object.keys(historyData).map(key => ({
+                id: key,
+                ...historyData[key]
+            })).sort((a, b) => b.draw_date.localeCompare(a.draw_date));
+
+            sortedRecords.forEach(record => {
+                const row = document.createElement('div');
+                row.className = "flex items-center justify-between bg-slate-950/60 p-3 rounded-xl border border-slate-900 hover:border-slate-800 transition duration-150";
+                
+                const full6D = record.six_digit;
+                const lead3D = full6D.substring(0, 3);
+                const mid1D = full6D.substring(3, 4);
+                const tail2D = full6D.substring(4, 6);
+
+                row.innerHTML = `
+                    <div class="flex flex-col">
+                        <span class="text-xs text-slate-400 font-semibold">${record.draw_date}</span>
+                        <div class="text-base font-mono mt-0.5 tracking-wider">
+                            <span class="text-slate-500">${lead3D}</span><span class="text-indigo-400 font-medium">${mid1D}</span><span class="text-amber-400 font-bold">${tail2D}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="text-right flex flex-col text-[10px] font-mono text-slate-500">
+                            <span>3D: <strong class="text-slate-300">${record.three_digit}</strong></span>
+                            <span>2D: <strong class="text-slate-300">${record.two_digit}</strong></span>
+                        </div>
+                        <button type="button" onclick="openDeleteModal('${record.id}')" class="text-slate-600 hover:text-rose-500 active:scale-95 transition p-1">
+                            <i class="fa-solid fa-trash-can text-sm"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(row);
             });
         }
 
-        // ຜູກມັດຟັງຊັນເຂົ້າກັບປຸ່ມກົດເມື່ອໂຫຼດໜ້າເວັບຮຽບຮ້ອຍ
-        window.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('btn-generate').addEventListener('click', handleOptimize);
+        // PREMIUM CUSTOM POPUPS / TOASTS
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast-notification');
+            const toastMsg = document.getElementById('toast-message');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastMsg.innerText = message;
+            if (type === 'success') {
+                toastIcon.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>`;
+                toast.className = toast.className.replace(/border-[^\s]+/g, '') + ' border-emerald-500/30';
+            } else if (type === 'error') {
+                toastIcon.innerHTML = `<i class="fa-solid fa-circle-exclamation text-rose-400 text-sm"></i>`;
+                toast.className = toast.className.replace(/border-[^\s]+/g, '') + ' border-rose-500/30';
+            } else {
+                toastIcon.innerHTML = `<i class="fa-solid fa-circle-info text-indigo-400 text-sm"></i>`;
+                toast.className = toast.className.replace(/border-[^\s]+/g, '') + ' border-indigo-500/30';
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // SETTINGS MODAL LOGIC (API KEY)
+        function openSettingsModal() {
+            const modal = document.getElementById('settings-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('div').classList.remove('scale-95');
+                modal.querySelector('div').classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeSettingsModal() {
+            const modal = document.getElementById('settings-modal');
+            modal.classList.add('opacity-0');
+            modal.querySelector('div').classList.remove('scale-100');
+            modal.querySelector('div').classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        document.getElementById('save-settings-btn').addEventListener('click', () => {
+            const keyVal = document.getElementById('api-key-input').value.trim();
+            if (keyVal) {
+                localStorage.setItem('gemini_api_key', keyVal);
+                showToast("ບັນທຶກ API Key ສຳເລັດແລ້ວ!", "success");
+            } else {
+                localStorage.removeItem('gemini_api_key');
+                showToast("ລຶບ API Key ອອກແລ້ວ.", "info");
+            }
+            closeSettingsModal();
+        });
+
+        // DELETE HISTORY RECORD MODAL
+        function openDeleteModal(nodeKey) {
+            activeDeleteKey = nodeKey;
+            const modal = document.getElementById('delete-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('div').classList.remove('scale-95');
+                modal.querySelector('div').classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeDeleteModal() {
+            const modal = document.getElementById('delete-modal');
+            modal.classList.add('opacity-0');
+            modal.querySelector('div').classList.remove('scale-100');
+            modal.querySelector('div').classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                activeDeleteKey = null;
+            }, 300);
+        }
+
+        document.getElementById('confirm-delete-btn').addEventListener('click', () => {
+            if (activeDeleteKey) {
+                database.ref('lottery_history/' + activeDeleteKey).remove()
+                    .then(() => {
+                        showToast("ລຶບຂໍ້ມູນສຳເລັດແລ້ວ!", "success");
+                        closeDeleteModal();
+                    })
+                    .catch(err => {
+                        showToast("ເກີດຂໍ້ຜິດພາດ: " + err.message, "error");
+                        closeDeleteModal();
+                    });
+            }
+        });
+
+        function toggleHistoryCollapse() {
+            const container = document.getElementById('history-scroll-container');
+            const button = document.getElementById('toggle-history-btn');
+            isHistoryCollapsed = !isHistoryCollapsed;
+            if (isHistoryCollapsed) {
+                container.classList.add('hidden');
+                button.innerText = "ສະແດງ";
+            } else {
+                container.classList.remove('hidden');
+                button.innerText = "ຫຍໍ້ເຂົ້າ";
+            }
+        }
+
+        // --- GEMINI PROMPT GENERATION ENGINE ---
+        async function runGeminiAnalysis(date, fullNumber) {
+            const aiPanel = document.getElementById('ai-panel');
+            const aiLoading = document.getElementById('ai-loading');
+            const aiContent = document.getElementById('ai-content');
+
+            aiPanel.classList.remove('hidden');
+            aiLoading.classList.remove('hidden');
+            aiContent.classList.add('hidden');
+            aiContent.innerHTML = '';
+
+            const tail2D = fullNumber.substring(4, 6);
+            const animalName = laoAnimalChart[tail2D] || "ບໍ່ພົບຂໍ້ມູນໃນຕຳລາ";
+
+            // Local API check
+            const geminiApiKey = localStorage.getItem('gemini_api_key');
+            if (!geminiApiKey) {
+                aiLoading.classList.add('hidden');
+                aiContent.innerHTML = `
+                    <div class="text-center p-3 border border-amber-500/20 bg-amber-500/5 rounded-xl space-y-2">
+                        <p class="text-amber-400 font-bold text-xs"><i class="fa-solid fa-key"></i> ກະລຸນາຕັ້ງຄ່າ API Key ກ່ອນ!</p>
+                        <p class="text-[10px] text-slate-400 leading-normal">ກົດທີ່ປຸ່ມຮູບເຟືອງ ⚙️ ດ້ານເທິງຂວາມື ເພື່ອວາງ API Key ຂອງທ່ານ. ຫຼັງຈາກນັ້ນ Gemini ຈະວິເຄາະໃຫ້ໂດຍອັດຕະໂນມັດທັນທີ.</p>
+                    </div>
+                `;
+                aiContent.classList.remove('hidden');
+                return;
+            }
+
+            const promptText = `
+                Analyze this Lao Lottery draw result.
+                Draw Date: ${date}
+                Winning 6-Digit Number: ${fullNumber}
+                
+                Please provide a highly concise, interesting analysis of this result in exactly 3 short paragraphs, written ENTIRELY in beautiful and natural Lao language (ພາສາລາວ):
+                Paragraph 1: Discuss the Traditional Lao Animal Symbolism (ຕຳລາຊັ້ນສັດ) associated with the last 2 digits: "${tail2D}" which represents "${animalName}". Explain what this means in Lao cultural lore, tradition, or belief (whether it is lucky/unlucky).
+                Paragraph 2: Analyze the mathematical digit composition in Lao. Comment on the distribution of Odd/Even (ເລກຄູ່/ເລກຄີກ), High/Low (ເລກສູງ/ເລກຕ່ຳ: 0-4 vs 5-9), and mention if there are repeating digits (ຕົວເລກຊ້ຳ/ເລກເບິ້ລ).
+                Paragraph 3: Connect this to the "Mandel-Selbee-Harvey" theories. Advise the user on how this result shifts the predictive landscape. Which numbers are now "hot momentum" (ເລກເດັ່ນ/ເລກຮ້ອນ) and which are left "cold" (ເລກດັບ/ເລກເຢັນ) for the next calculations.
+                
+                Keep the tone extremely professional, intriguing, and tailored for a dark-mode mobile dashboard interface. Avoid using external markup language or complex headers, just output 3 clean, beautiful paragraphs written in natural Lao language.
+            `;
+
+            // Updated endpoint to use the active GA gemini-2.5-flash model
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: promptText }] }],
+                systemInstruction: { parts: [{ text: "You are the advanced analytical advisor of the Mandel-Selbee Lao Lottery engine. Your reports are always concise, punchy, mathematically interesting, culturally grounded, and written entirely in natural, elegant, and polite Lao language (ພາສາລາວ)." }] }
+            };
+
+            const maxRetries = 3;
+            let currentDelay = 1000;
+            let lastErrorMsg = "ບໍ່ສາມາດເຊື່ອມຕໍ່ກັບເຊີເວີໄດ້";
+
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errData = await response.json().catch(() => ({}));
+                        lastErrorMsg = errData.error?.message || `HTTP error! status: ${response.status}`;
+                        throw new Error(lastErrorMsg);
+                    }
+
+                    const result = await response.json();
+                    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                    if (text) {
+                        const paragraphs = text.split('\n\n').filter(p => p.trim() !== '');
+                        let formattedHTML = '';
+                        paragraphs.forEach(p => {
+                            formattedHTML += `<p class="mb-2 last:mb-0 text-slate-300">${p}</p>`;
+                        });
+
+                        aiLoading.classList.add('hidden');
+                        aiContent.innerHTML = formattedHTML;
+                        aiContent.classList.remove('hidden');
+                        return;
+                    }
+                } catch (error) {
+                    console.error(`Attempt ${attempt} failed:`, error);
+                    lastErrorMsg = error.message || lastErrorMsg;
+                    if (attempt === maxRetries) {
+                        aiLoading.classList.add('hidden');
+                        aiContent.innerHTML = `
+                            <div class="p-3 border border-rose-500/20 bg-rose-500/5 rounded-xl space-y-2">
+                                <p class="text-rose-400 font-semibold flex items-center gap-1">
+                                    <i class="fa-solid fa-triangle-exclamation"></i> ລະບົບການວິຄາະຂັດຂ້ອງ!
+                                </p>
+                                <p class="text-[10px] text-slate-400 leading-normal">
+                                    <strong>ລາຍລະອຽດຂໍ້ຜິດພາດ:</strong> ${lastErrorMsg}<br>
+                                    (ກະລຸນາກວດສອບຄວາມຖືກຕ້ອງຂອງ Gemini API Key ຂອງທ່ານຄືນໃໝ່ ຜ່ານປຸ່ມຕັ້ງຄ່າ ⚙️ ດ້ານເທິງຂວາມື)
+                                </p>
+                            </div>
+                        `;
+                        aiContent.classList.remove('hidden');
+                    } else {
+                        await new Promise(resolve => setTimeout(resolve, currentDelay));
+                        currentDelay *= 2;
+                    }
+                }
+            }
+        }
+
+        // Form Submission to Log Results
+        document.getElementById('draw-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const dateVal = document.getElementById('draw-date').value;
+            const textVal = document.getElementById('six-digit-input').value.trim();
+            const submitBtn = document.getElementById('submit-draw-btn');
+
+            if(textVal.length !== 6 || isNaN(textVal)) {
+                showToast("ກະລຸນາປ້ອນຕົວເລກໃຫ້ຄົບ 6 ຕົວ!", "error");
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin text-xs"></i> ກຳລັງວິເຄາະ...`;
+
+            const payload = {
+                draw_date: dateVal,
+                six_digit: textVal,
+                three_digit: textVal.substring(3, 6),
+                two_digit: textVal.substring(4, 6),
+                digits_array: textVal.split('').map(Number)
+            };
+
+            const nodeKey = dateVal.replace(/-/g, '_') + "_draw";
+            
+            database.ref('lottery_history/' + nodeKey).set(payload)
+                .then(() => {
+                    document.getElementById('six-digit-input').value = '';
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up text-xs"></i> ຈັດເກັບ & ປະມວນຜົນ`;
+                    
+                    showToast("ບັນທຶກຂໍ້ມູນ ແລະ ອັບເດດລະບົບສຳເລັດ!", "success");
+                    runGeminiAnalysis(dateVal, textVal);
+                })
+                .catch(err => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up text-xs"></i> ຈັດເກັບ & ປະມວນຜົນ`;
+                    showToast("ເກີດຂໍ້ຜິດພາດ: " + err.message, "error");
+                });
+        });
+
+        function setDigitMode(mode) {
+            currentDigitMode = mode;
+            ['mode-2d', 'mode-3d', 'mode-6d'].forEach(id => document.getElementById(id).className = "py-2 rounded-lg");
+            document.getElementById('mode-' + mode + 'd').className = "py-2 rounded-lg text-white bg-slate-800 shadow-sm";
+        }
+
+        // CONDENSATION & COVERING DESIGN GENERATION SCRIPT
+        document.getElementById('generate-btn').addEventListener('click', function() {
+            const container = document.getElementById('tickets-container');
+            container.innerHTML = ''; 
+            
+            let pool = [...highlyFrequentDigits];
+            
+            if (!pool || pool.length < 3) {
+                pool = [0, 2, 4, 7, 9];
+            }
+
+            // ສ້າງ Seed ທີ່ຄົງທີ່ໂດຍອີງໃສ່ currentDatabaseSeed ແລະ currentDigitMode
+            let localSeed = currentDatabaseSeed + currentDigitMode;
+            
+            // ຟັງຊັນສ້າງຕົວເລກສຸ່ມແບບຄົງທີ່ (Seeded PRNG) ໂດຍອີງໃສ່ຄ່າ Sine
+            function getSeededRandom() {
+                let x = Math.sin(localSeed++) * 10000;
+                return x - Math.floor(x);
+            }
+
+            // ຟັງຊັນຈັດລຽງອະເຣແບບຄົງທີ່ໂດຍອີງໃສ່ Seed
+            function shuffleArraySeeded(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(getSeededRandom() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+            }
+
+            while(pool.length < 5) {
+                let seedVal = Math.floor(getSeededRandom() * 10);
+                if (!pool.includes(seedVal)) {
+                    pool.push(seedVal);
+                }
+            }
+            
+            let wheelTickets = [];
+
+            if (currentDigitMode === 2) {
+                for(let x = 0; x < pool.length; x++) {
+                    for(let y = 0; y < pool.length; y++) {
+                        if (x !== y) {
+                            wheelTickets.push(`${pool[x]}${pool[y]}`);
+                        }
+                    }
+                }
+                shuffleArraySeeded(wheelTickets);
+                wheelTickets = [...new Set(wheelTickets)].slice(0, 6);
+
+            } else if (currentDigitMode === 3) {
+                for(let i=0; i < pool.length - 2; i++) {
+                    let randIdx = Math.floor(getSeededRandom() * pool.length);
+                    wheelTickets.push(`${pool[i]}${pool[(i+1)%pool.length]}${pool[(i+2)%pool.length]}`);
+                    wheelTickets.push(`${pool[(i+1)%pool.length]}${pool[randIdx]}${pool[i]}`);
+                }
+                shuffleArraySeeded(wheelTickets);
+                wheelTickets = [...new Set(wheelTickets)].slice(0, 5);
+
+            } else {
+                for(let k = 0; k < 4; k++) {
+                    let ticket = [];
+                    for(let pos = 0; pos < 6; pos++) {
+                        let offset = Math.floor(getSeededRandom() * 3);
+                        let selectionIndex = (k + pos + offset) % pool.length;
+                        ticket.push(pool[selectionIndex]);
+                    }
+                    wheelTickets.push(ticket.join(''));
+                }
+            }
+
+            wheelTickets.forEach((tkt, index) => {
+                const row = document.createElement('div');
+                row.className = "flex justify-between items-center py-1 border-b border-slate-900 last:border-0";
+                row.innerHTML = `<span class="text-slate-500 text-xs">ຊຸດທີ #${index + 1}</span> <span class="text-amber-400 font-bold tracking-widest">${tkt}</span>`;
+                container.appendChild(row);
+            });
+
+            document.getElementById('ticket-count').innerText = `${wheelTickets.length} ຊຸດ`;
+            document.getElementById('output-screen').classList.remove('hidden');
         });
     </script>
-
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #1a1a2e;
-            color: #ffffff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .container {
-            background-color: #162447;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            text-align: center;
-            width: 100%;
-            max-width: 450px;
-        }
-        h2 {
-            color: #e43f5a;
-            margin-bottom: 20px;
-        }
-        .input-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 14px;
-            color: #bfa3ff;
-        }
-        input[type="number"] {
-            width: 80%;
-            padding: 10px;
-            border-radius: 8px;
-            border: 2px solid #1f4068;
-            background-color: #1a1a2e;
-            color: #fff;
-            font-size: 16px;
-            text-align: center;
-        }
-        button {
-            background-color: #e43f5a;
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.3s;
-            width: 85%;
-        }
-        button:hover {
-            background-color: #ff4b6b;
-        }
-        .result-container {
-            margin-top: 30px;
-            min-height: 80px;
-        }
-        #result-display {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        .number-ball {
-            background: linear-gradient(145deg, #e43f5a, #b32e44);
-            color: white;
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 20px;
-            font-weight: bold;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
-        #status-message {
-            margin-top: 15px;
-            font-size: 13px;
-            font-weight: 500;
-        }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <h2>Mandel-Selbee Engine</h2>
-    <p style="font-size: 12px; color: #8892b0;">ຄິດໄລ່ ແລະ ຈັດຊຸດຕົວເລກທີ່ເໝາະສົມທີ່ສຸດ</p>
-    
-    <div class="input-group">
-        <label for="delta-input">ປ້ອນຄ່າ Harvey Cover Delta (Δ):</label>
-        <input type="number" id="delta-input" step="0.01" value="3.00" placeholder="ຕົວຢ່າງ: 3.00">
-    </div>
-
-    <button id="btn-generate">ສ້າງໂຕເລກທີ່ເໝາະສົມທີ່ສຸດ</button>
-
-    <div class="result-container">
-        <div id="result-display">
-            </div>
-        <div id="status-message"></div>
-    </div>
-</div>
-
 </body>
 </html>
