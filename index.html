@@ -9,18 +9,18 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
         import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-        // ⚙️ ກະລຸນາປ່ຽນຄ່າເຫຼົ່ານີ້ໃຫ້ເປັນຂໍ້ມູນ Firebase Project ຂອງທ່ານຕົວຈິງ
+        // 🔐 ຂໍ້ມູນບ່ອນເຊື່ອມຕໍ່ Firebase ຂອງທ່ານ (ກະລຸນາເກັບຮັກສາຄ່າຕົວຈິງຂອງທ່ານໄວ້ບ່ອນນີ້)
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            databaseURL: "YOUR_DATABASE_URL",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "YOUR_API_KEY_HERE",
+            authDomain: "YOUR_AUTH_DOMAIN_HERE",
+            databaseURL: "YOUR_DATABASE_URL_HERE",
+            projectId: "YOUR_PROJECT_ID_HERE",
+            storageBucket: "YOUR_STORAGE_BUCKET_HERE",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID_HERE",
+            appId: "YOUR_APP_ID_HERE"
         };
 
-        // Initialize Firebase
+        // ເລີ່ມຕົ້ນລະບົບ Firebase
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
@@ -30,6 +30,7 @@
         function generateNumbersForDelta(targetDelta) {
             let attempts = 0;
             while (attempts < 1000) {
+                // ສ້າງເລກສຸ່ມ 6 ຕົວ (0-9)
                 let nums = Array.from({length: 6}, () => Math.floor(Math.random() * 10));
                 let totalDiff = 0;
                 for (let i = 0; i < 5; i++) {
@@ -37,21 +38,20 @@
                 }
                 let calcDelta = totalDiff / 5;
                 
-                // ອະນຸຍາດໃຫ້ມີຄ່າຄາດເຄື່ອນໄດ້ເລັກນ້ອຍ ±0.2
+                // ເງື່ອນໄຂຄ່າຄາດເຄື່ອນ Delta ທີ່ຍອມຮັບໄດ້ (±0.2)
                 if (Math.abs(calcDelta - targetDelta) <= 0.2) {
                     return nums;
                 }
                 attempts++;
             }
-            return [7, 4, 1, 4, 6, 9]; // ຕົວເລກ Base ຖ້າຄຳນວນບໍ່ທັນ
+            return [7, 4, 1, 4, 6, 9]; // ຕົວເລກ Default ຫາກຄຳນວນເກີນກຳນົດ
         }
 
         // -------------------------------------------------------------
-        // 🚀 Main Process: ຟັງຊັນຫຼັກໃນການຈັດການຕົວເລກ
+        // 🚀 Main Process: ຟັງຊັນຫຼັກໃນການຈັດການຕົວເລກ ແລະ ບັນທຶກລົງ Firebase
         // -------------------------------------------------------------
         async function handleOptimize() {
             const deltaInput = parseFloat(document.getElementById('delta-input').value);
-            const resultDisplay = document.getElementById('result-display');
             const statusDisplay = document.getElementById('status-message');
 
             if (isNaN(deltaInput)) {
@@ -59,56 +59,56 @@
                 return;
             }
 
-            // ສົມມຸດ ID ຂອງຜູ້ໃຊ້ (ໃນລະບົບຈິງສາມາດປ່ຽນເປັນ User ID ຈາກ Firebase Auth ໄດ້)
+            // ID ຂອງ Session ຜູ້ໃຊ້ (ສາມາດປ່ຽນເປັນ User ID ຈາກລະບົບ Auth ຂອງທ່ານໄດ້)
             const userId = "current_user_session"; 
             const dbRef = ref(db);
 
             try {
-                // 🔍 1. ກວດສອບຂໍ້ມູນຫຼ້າສຸດທີ່ເຄີຍບັນທຶກໄວ້ໃນ Firebase
+                // 🔍 1. ດຶງຂໍ້ມູນຫຼ້າສຸດທີ່ເຄີຍບັນທຶກໄວ້ໃນ Firebase ມາສະແກນກ່ອນ
                 const snapshot = await get(child(dbRef, `users/${userId}`));
                 
                 if (snapshot.exists()) {
                     const userData = snapshot.val();
                     
-                    // 🕵️‍♂️ ຖ້າຄ່າ Delta ໃໝ່ທີ່ປ້ອນ ເທົ່າກັບຄ່າ Delta ທີ່ເຄີຍຄຳນວນໄວ້ແລ້ວ
+                    // 🕵️‍♂️ ກວດສອບ: ຖ້າຄ່າ Delta ໃໝ່ທີ່ປ້ອນ ເທົ່າກັບຄ່າ Delta ທີ່ຢູ່ໃນຖານຂໍ້ມູນແລ້ວ
                     if (userData.current_delta === deltaInput && userData.locked_numbers) {
-                        // ສະແດງເລກຊຸດເດີມ ບໍ່ປ່ຽນແປງ
+                        // ສະແດງເລກຊຸດເດີມທັນທີ ໂດຍບໍ່ມີການປ່ຽນແປງຄ່າ
                         displayNumbers(userData.locked_numbers);
                         statusDisplay.innerText = "🔒 ໃຊ້ຕົວເລກຊຸດເດີມ (ຄ່າ Delta ບໍ່ປ່ຽນແປງ)";
                         statusDisplay.style.color = "#ff9800";
-                        return; // ຈົບການເຮັດວຽກທັນທີ
+                        return; // ຢຸດການເຮັດວຽກທັນທີ ບໍ່ Re-random
                     }
                 }
 
-                // 🔄 2. ຖ້າເປັນຄ່າ Delta ໃໝ່ ຫຼື ຍັງບໍ່ເຄີຍມີຂໍ້ມູນ, ໃຫ້ຄຳນວນໃໝ່
+                // 🔄 2. ຖ້າເປັນຄ່າ Delta ໃໝ່ ໃຫ້ລະບົບຄຳນວນຊຸດຕົວເລກໃໝ່
                 statusDisplay.innerText = "⚡ ກຳລັງຄຳນວນຕົວເລກໃໝ່...";
                 statusDisplay.style.color = "#4caf50";
                 
                 const newNumbers = generateNumbersForDelta(deltaInput);
 
-                // 💾 3. ບັນທຶກຄ່າ Delta ໃໝ່ ແລະ ເລກຊຸດໃໝ່ລົງ Firebase ເພື່ອລັອກໄວ້
+                // 💾 3. ຂຽນຄ່າ Delta ແລະ ເລກຊຸດໃໝ່ລົງ Firebase ເພື່ອລັອກຄ່າໄວ້
                 await set(ref(db, `users/${userId}`), {
                     current_delta: deltaInput,
                     locked_numbers: newNumbers,
                     updated_at: new Date().toISOString()
                 });
 
-                // ສະແດງຜົນເລກໃໝ່
+                // ສະແດງຜົນເລກຊຸດໃໝ່ອອກໜ້າຈໍ
                 displayNumbers(newNumbers);
                 statusDisplay.innerText = "🎯 ສ້າງຕົວເລກໃໝ່ ແລະ ລັອກຄ່າຮຽບຮ້ອຍແລ້ວ!";
                 statusDisplay.style.color = "#4caf50";
 
             } catch (error) {
                 console.error("Firebase Error:", error);
-                statusDisplay.innerText = "❌ ເກີດຂໍ້ຜິດພາດໃນການເຊື່ອມຕໍ່ລະບົບ.";
+                statusDisplay.innerText = "❌ ເກີດຂໍ້ຜິດພາດໃນການເຊື່ອມຕໍ່ Firebase.";
                 statusDisplay.style.color = "#f44336";
             }
         }
 
-        // ຟັງຊັນຊ່ວຍໃນການສະແດງຜົນຕົວເລກເທິງໜ້າຈໍ
+        // 🎨 ຟັງຊັນຈັດການ Render ຕົວເລກໃຫ້ສະແດງເທິງໜ້າຈໍ
         function displayNumbers(numArray) {
             const container = document.getElementById('result-display');
-            container.innerHTML = ''; // ລ້າງຄ່າເກົ່າ
+            container.innerHTML = ''; // ລ້າງຕົວເລກເກົ່າອອກ
             
             numArray.forEach(num => {
                 const ball = document.createElement('div');
@@ -118,9 +118,12 @@
             });
         }
 
-        // ຜູກມັດຟັງຊັນເຂົ້າກັບປຸ່ມກົດເມື່ອໂຫຼດໜ້າເວັບຮຽບຮ້ອຍ
+        // 🔌 ຜູກມັດ Event ເມື່ອມີການກົດປຸ່ມ ສ້າງໂຕເລກ
         window.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('btn-generate').addEventListener('click', handleOptimize);
+            const btn = document.getElementById('btn-generate');
+            if(btn) {
+                btn.addEventListener('click', handleOptimize);
+            }
         });
     </script>
 
