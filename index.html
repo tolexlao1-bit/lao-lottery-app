@@ -3,532 +3,790 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lao Lottery Advanced Combinatorial Engine</title>
+    <title>Lao Lottery Smart Engine v2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .mono { font-family: 'IBM Plex Mono', monospace; }
+        .tab-active { background: linear-gradient(135deg, #f59e0b, #ef4444); color: #0f172a; font-weight: 700; }
+        .tab-inactive { color: #64748b; }
+        .heat-0 { background: #1e293b; color: #475569; }
+        .heat-1 { background: #1e3a5f; color: #93c5fd; }
+        .heat-2 { background: #1d4ed8; color: #bfdbfe; }
+        .heat-3 { background: #d97706; color: #fef3c7; }
+        .heat-4 { background: #dc2626; color: #fff; font-weight: 700; }
+        .due-low  { color: #6ee7b7; }
+        .due-mid  { color: #fbbf24; }
+        .due-high { color: #f87171; }
+        .bar-fill { height: 6px; border-radius: 4px; background: linear-gradient(90deg, #f59e0b, #ef4444); transition: width 0.6s ease; }
+        .ticket-row:nth-child(odd) { background: rgba(255,255,255,0.02); }
+        .glow-amber { box-shadow: 0 0 18px rgba(245,158,11,0.18); }
+        .score-pill { font-family: 'IBM Plex Mono', monospace; font-size: 10px; border-radius: 99px; padding: 2px 8px; }
+        .tab-btn { transition: all 0.2s; }
+        ::-webkit-scrollbar { width: 4px; } 
+        ::-webkit-scrollbar-track { background: #0f172a; } 
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+    </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans min-h-screen antialiased selection:bg-indigo-500 selection:text-white">
+<body class="bg-slate-950 text-slate-100 min-h-screen antialiased">
 
-    <div class="max-w-md mx-auto min-h-screen flex flex-col justify-between p-4 pb-24 relative">
-        
-        <header class="mb-6 pt-2 flex items-center justify-between border-b border-slate-800 pb-4">
-            <div class="flex items-center gap-3">
-                <div class="bg-gradient-to-tr from-amber-500 to-orange-500 p-2.5 rounded-xl shadow-lg">
-                    <i class="fa-solid fa-calculator text-xl text-slate-950"></i>
-                </div>
-                <div>
-                    <h1 class="font-bold text-lg tracking-wide">Mandel-Selbee Engine</h1>
-                    <p class="text-xs text-amber-400 font-medium tracking-wider uppercase">Combinatorial & AI Analytics</p>
-                </div>
+<div class="max-w-md mx-auto min-h-screen flex flex-col p-4 pb-28">
+
+    <!-- HEADER -->
+    <header class="mb-5 pt-2 flex items-center justify-between border-b border-slate-800/60 pb-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-red-500 flex items-center justify-center shadow-lg glow-amber">
+                <i class="fa-solid fa-chart-line text-slate-950 text-base"></i>
             </div>
-            
-            <div class="flex items-center gap-2">
-                <button type="button" onclick="openSettingsModal()" class="text-slate-400 hover:text-indigo-400 transition p-2 bg-slate-900 rounded-xl border border-slate-800 flex items-center justify-center">
-                    <i class="fa-solid fa-gear text-sm"></i>
-                </button>
-                <div id="db-status" class="flex items-center gap-2 px-2.5 py-1 rounded-full bg-slate-800 text-xs font-semibold">
-                    <span id="status-dot" class="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse"></span> <span id="status-text">Connecting</span>
-                </div>
-            </div>
-        </header>
-
-        <main class="space-y-6 flex-grow">
-            
-            <section class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-xl">
-                <div class="flex items-center gap-2 mb-4">
-                    <i class="fa-solid fa-square-plus text-amber-400"></i>
-                    <h2 class="font-semibold text-sm uppercase tracking-wider text-slate-300">保持ຂໍ້ມູນການອອກຫວຍລ້າສຸດ</h2>
-                </div>
-                <form id="draw-form" class="space-y-4">
-                    <div>
-                        <label class="block text-xs text-slate-400 font-medium mb-1.5">ວັນທີອອກຫວຍຢ່າງເປັນທາງການ</label>
-                        <input type="date" id="draw-date" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-slate-400 font-medium mb-1.5">ເລກອອກ 6 ຕົວຢ່າງເປັນທາງການ</label>
-                        <div class="relative">
-                            <input type="text" id="six-digit-input" maxlength="6" pattern="\d{6}" required placeholder="ຕົວຢ່າງ: 762722" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-12 py-3 text-lg font-mono tracking-widest text-amber-400 focus:outline-none focus:border-amber-500">
-                            <div class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 font-mono text-xs">6D</div>
-                        </div>
-                    </div>
-                    <button type="submit" id="submit-draw-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-cloud-arrow-up text-xs"></i> ຈັດເກັບ & ປະມວນຜົນ
-                    </button>
-                </form>
-            </section>
-
-            <section id="ai-panel" class="bg-gradient-to-br from-indigo-950/40 to-slate-900/80 border border-indigo-500/20 rounded-2xl p-5 shadow-xl hidden">
-                <div class="flex items-center justify-between mb-3 border-b border-indigo-500/10 pb-2">
-                    <div class="flex items-center gap-2">
-                        <i class="fa-solid fa-brain text-indigo-400"></i>
-                        <h2 class="font-bold text-sm text-indigo-300 uppercase tracking-wider">ການວິເຄາະທັນທີໂດຍ AI</h2>
-                    </div>
-                    <span class="text-[9px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded font-mono">Gemini-2.5-Flash</span>
-                </div>
-                
-                <div id="ai-loading" class="flex flex-col items-center justify-center py-6 space-y-2">
-                    <i class="fa-solid fa-circle-notch text-2xl text-amber-400 animate-spin"></i>
-                    <p class="text-xs text-slate-400 italic text-center">Gemini ກຳລັງວິເຄາະຮູບແບບສະຖິຕິ...</p>
-                </div>
-
-                <div id="ai-content" class="text-xs text-slate-300 leading-relaxed space-y-3 hidden"></div>
-            </section>
-
-            <section class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
-                <div class="flex items-center justify-between">
-                    <h2 class="font-semibold text-xs uppercase tracking-wider text-slate-400">ສະຖານະຖານຂໍ້ມູນ</h2>
-                    <span id="total-draws" class="text-xs font-mono bg-slate-950 px-2 py-0.5 rounded text-indigo-400">0 draws loaded</span>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Mandel Hot Pool (7D)</div>
-                        <div id="hot-pool" class="font-mono text-emerald-400 font-bold">[...]</div>
-                    </div>
-                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Harvey Cover Delta</div>
-                        <div id="cold-pool" class="font-mono text-indigo-400 font-bold">Δ Syncing</div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <i class="fa-solid fa-clock-rotate-left text-indigo-400"></i>
-                        <h2 class="font-semibold text-sm text-slate-200">ປະຫວັດການອອກຫວຍ</h2>
-                    </div>
-                    <button type="button" id="toggle-history-btn" onclick="toggleHistoryCollapse()" class="text-xs text-indigo-400 font-semibold hover:underline">
-                        ຫຍໍ້ເຂົ້າ
-                    </button>
-                </div>
-
-                <div id="history-scroll-container" class="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-                    <div id="empty-history-notice" class="text-center py-6 text-sm text-slate-500 italic">
-                        ບໍ່ມີຂໍ້ມູນການອອກຫວຍກ່ອນໜ້ານີ້ໃນລະບົບ.
-                    </div>
-                </div>
-            </section>
-
-            <section class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
-                <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-layer-group text-amber-400"></i>
-                    <h2 class="font-semibold text-sm text-slate-200">ການຈັດກຸ່ມແບບປະສົມປະສານ (ຂະຫຍາຍຕາໜ່າງ)</h2>
-                </div>
-
-                <div class="grid grid-cols-3 gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-semibold text-center text-slate-400">
-                    <button type="button" onclick="setDigitMode(2)" id="mode-2d" class="py-2 rounded-lg text-white bg-slate-800">2D (12 ຊຸດ)</button>
-                    <button type="button" onclick="setDigitMode(3)" id="mode-3d" class="py-2 rounded-lg">3D (10 ຊຸດ)</button>
-                    <button type="button" onclick="setDigitMode(6)" id="mode-6d" class="py-2 rounded-lg">6D (8 ຊຸດ)</button>
-                </div>
-
-                <button type="button" id="generate-btn" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold text-sm py-3.5 rounded-xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-cubes"></i> ສ້າງຊຸດຕົວເລກທີ່ເໝາະສົມທີ່ສຸດ
-                </button>
-
-                <div id="output-screen" class="space-y-3 hidden">
-                    <div class="text-xs text-slate-400 font-bold uppercase tracking-wider flex justify-between">
-                        <span>ຜົນການອອກແບບການປົກຄຸມແບບ Harvey (ຂະຫຍາຍ)</span>
-                        <span class="text-amber-400 font-mono" id="ticket-count">0 ຊຸດ</span>
-                    </div>
-                    <div id="tickets-container" class="bg-slate-950 border border-slate-800 rounded-xl p-3 font-mono text-sm space-y-1.5 max-h-56 overflow-y-auto">
-                        </div>
-                    <p class="text-[11px] text-emerald-400/90 italic"><i class="fa-solid fa-circle-info"></i> ລະບົບຂະຫຍາຍຕາໜ່າງ Hot Pool ເປັນ 7 ຕົວເພື່ອຫຼຸດອັດຕາການຫຼຸດລາຍການ ແລະ ເພີ່ມຕົວເລກດັກໜ້າ.</p>
-                    <p class="text-[10px] text-amber-500/80 italic mt-1"><i class="fa-solid fa-lock"></i> ຜົນຄຳນວນຖືກລັອກຕາມຖານຂໍ້ມູນລ່າສຸດ (ຈະປ່ຽນແປງເມື່ອມີຜົນຫວຍໃໝ່ເທົ່ານັ້ນ).</p>
-                </div>
-            </section>
-
-        </main>
-
-        <div id="settings-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden transition-all duration-300 opacity-0">
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-xs w-full mx-4 shadow-2xl transform scale-95 transition-all duration-300">
-                <div class="text-indigo-400 text-2xl mb-2 text-center">
-                    <i class="fa-solid fa-key"></i>
-                </div>
-                <h3 class="font-bold text-base text-slate-100 text-center mb-2">ຕັ້ງຄ່າ Gemini API Key</h3>
-                <p class="text-xs text-slate-400 text-center mb-4 leading-relaxed">ກະລຸນາໃສ່ API Key ຂອງທ່ານເພື່ອໃຫ້ AI ສາມາດວິເຄາະຜົນຫວຍໄດ້ທັນທີ.</p>
-                
-                <div class="mb-4">
-                    <input type="password" id="api-key-input" placeholder="AIzaSy..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 font-mono">
-                </div>
-
-                <div class="flex gap-3">
-                    <button type="button" onclick="closeSettingsModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold py-2.5 rounded-xl transition">ຍົກເລີກ</button>
-                    <button type="button" id="save-settings-btn" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold py-2.5 rounded-xl transition">ບັນທຶກ</button>
-                </div>
+            <div>
+                <h1 class="font-bold text-base tracking-tight">Smart Lottery Engine</h1>
+                <p class="text-[10px] text-amber-400 font-semibold tracking-widest uppercase">Statistical · Coverage · Backtest</p>
             </div>
         </div>
-
-        <div id="delete-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden transition-all duration-300 opacity-0">
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-xs w-full mx-4 shadow-2xl transform scale-95 transition-all duration-300">
-                <div class="text-rose-500 text-2xl mb-2 text-center">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                </div>
-                <h3 class="font-bold text-base text-slate-100 text-center mb-2">ຢືນຢັນການລຶບ?</h3>
-                <div class="flex gap-3">
-                    <button type="button" onclick="closeDeleteModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold py-2.5 rounded-xl transition">ຍົກເລີກ</button>
-                    <button type="button" id="confirm-delete-btn" class="flex-1 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold py-2.5 rounded-xl transition">ຢືນຢັນລຶບ</button>
-                </div>
+        <div class="flex items-center gap-2">
+            <button onclick="openSettingsModal()" class="w-8 h-8 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-amber-400 transition">
+                <i class="fa-solid fa-gear text-xs"></i>
+            </button>
+            <div id="db-status" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-[10px] font-bold">
+                <span id="status-dot" class="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                <span id="status-text" class="text-slate-400">ກຳລັງເຊື່ອມ</span>
             </div>
         </div>
+    </header>
 
-        <div id="toast-notification" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 border border-indigo-500/30 text-slate-100 text-xs px-4 py-3 rounded-xl shadow-2xl transition-all duration-300 transform translate-y-20 opacity-0 z-50 flex items-center gap-2.5 min-w-[280px] justify-center">
-            <span id="toast-icon" class="text-indigo-400"></span>
-            <span id="toast-message" class="font-medium"></span>
+    <!-- SUMMARY BAR -->
+    <div class="grid grid-cols-3 gap-2 mb-5">
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 text-center">
+            <div class="text-[9px] text-slate-500 uppercase tracking-wider mb-0.5">ຂໍ້ມູນ</div>
+            <div id="stat-draws" class="mono text-base font-bold text-amber-400">0</div>
+            <div class="text-[9px] text-slate-500">ຄັ້ງ</div>
         </div>
-
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 text-center">
+            <div class="text-[9px] text-slate-500 uppercase tracking-wider mb-0.5">Hit Rate 2D</div>
+            <div id="stat-hitrate" class="mono text-base font-bold text-emerald-400">-</div>
+            <div class="text-[9px] text-slate-500">backtest</div>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 text-center">
+            <div class="text-[9px] text-slate-500 uppercase tracking-wider mb-0.5">Due Score</div>
+            <div id="stat-due" class="mono text-base font-bold text-rose-400">-</div>
+            <div class="text-[9px] text-slate-500">max gap</div>
+        </div>
     </div>
 
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyC0qZf7frh9BYjtb6iZnWjfMjMnhucfAhI",
-            authDomain: "lao-lottery-engine.firebaseapp.com",
-            databaseURL: "https://lao-lottery-engine-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "lao-lottery-engine",
-            storageBucket: "lao-lottery-engine.firebasestorage.app",
-            messagingSenderId: "780776961991",
-            appId: "1:780776961991:web:480fef483ee174377e4be2",
-            measurementId: "G-3C8CT0YFYF"
-        };
+    <!-- TABS -->
+    <div class="flex gap-1 bg-slate-900/80 border border-slate-800 rounded-xl p-1 mb-5">
+        <button onclick="switchTab('add')"    id="tab-add"      class="tab-btn flex-1 text-[11px] py-2 rounded-lg tab-active">➕ ບັນທຶກ</button>
+        <button onclick="switchTab('stats')"  id="tab-stats"    class="tab-btn flex-1 text-[11px] py-2 rounded-lg tab-inactive">📊 ສະຖິຕິ</button>
+        <button onclick="switchTab('gen')"    id="tab-gen"      class="tab-btn flex-1 text-[11px] py-2 rounded-lg tab-inactive">🎯 ສ້າງຊຸດ</button>
+        <button onclick="switchTab('hist')"   id="tab-hist"     class="tab-btn flex-1 text-[11px] py-2 rounded-lg tab-inactive">📋 ປະຫວັດ</button>
+    </div>
 
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+    <!-- ===== TAB: ADD ===== -->
+    <div id="panel-add" class="space-y-4">
+        <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-xl">
+            <div class="flex items-center gap-2 mb-4">
+                <i class="fa-solid fa-plus-circle text-amber-400"></i>
+                <h2 class="font-semibold text-sm text-slate-200">ບັນທຶກຜົນຫວຍ</h2>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider block mb-1.5">ວັນທີ</label>
+                    <input type="date" id="draw-date" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition">
+                </div>
+                <div>
+                    <label class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider block mb-1.5">ເລກ 6 ຕົວ</label>
+                    <input type="text" id="six-digit-input" maxlength="6" pattern="\d{6}" placeholder="ຕົວຢ່າງ: 762722"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 mono text-xl tracking-[0.3em] text-amber-400 focus:outline-none focus:border-amber-500 transition">
+                </div>
+                <button id="submit-draw-btn" onclick="submitDraw()"
+                    class="w-full bg-gradient-to-r from-amber-500 to-red-500 text-slate-950 font-bold text-sm py-3 rounded-xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> ບັນທຶກ & ວິເຄາະ
+                </button>
+            </div>
+        </div>
 
-        let currentDigitMode = 2;
-        let frequencyMap = Array(10).fill(0);
-        let highlyFrequentDigits = []; 
-        let databaseLoaded = false;
-        let isHistoryCollapsed = false;
-        let activeDeleteKey = null;
-        let currentDatabaseSeed = 12345;
+        <!-- AI Panel -->
+        <div id="ai-panel" class="bg-slate-900/60 border border-indigo-500/20 rounded-2xl p-5 hidden">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-brain text-indigo-400 text-sm"></i>
+                    <span class="text-xs font-bold text-indigo-300 uppercase tracking-wider">AI ວິເຄາະທັນທີ</span>
+                </div>
+                <span class="text-[9px] bg-indigo-900/40 text-indigo-400 px-2 py-0.5 rounded mono">Gemini</span>
+            </div>
+            <div id="ai-loading" class="flex items-center gap-2 py-3">
+                <i class="fa-solid fa-circle-notch text-amber-400 animate-spin text-sm"></i>
+                <span class="text-xs text-slate-400 italic">ກຳລັງວິເຄາະ...</span>
+            </div>
+            <div id="ai-content" class="text-xs text-slate-300 leading-relaxed space-y-2 hidden"></div>
+        </div>
+    </div>
 
-        const laoAnimalChart = {
-            "01": "ກົວນາໂກ (Guanaco)", "02": "ລູກງົວ (Calf)", "03": "ກະທິງ (Antelope)", "04": "ຈຳພວກຂີ້ກຽດ (Sloth)", "05": "ແມວດຳ (Black Cat)",
-            "06": "ໝາຂາວ (White Dog)", "07": "ໝາດຳ (Black Dog)", "08": "ງົວເຖິກ (Bull)", "09": "ນາກ (Otter)", "10": "ແຮດ (Rhinoceros)",
-            "11": "ໜູ (Rat)", "12": "ອູດ (Dromedary)", "13": "ມ້າລາຍ (Zebra)", "14": "ຮິບໂປ (Hippopotamus)", "15": "ລະມັ່ງ (Gazelle)",
-            "16": "ລູກມ້າ (Foal)", "17": "ລໍ (Mule)", "18": "ໝາຈອກຟ້າ (Blue Fox)", "19": "ແມວນ້ຳ (Seal)", "20": "ชິນชິລ່າ (Chinchilla)",
-            "21": "ກະຮອກຂາວ (Ermine)", "22": "ໝູປ່າ (Wild Boar)", "23": "ຄົນຄົວກິນ (Cook)", "24": "ມ້າຂາວ (White Horse)", "25": "ຄວາຍ (Buffalo)",
-            "26": "ຢາມາ (Llama)", "27": "ວິກູນຍາ (Vicuña)", "28": "ແມວປ່າ (Wild Cat)", "29": "ແມວຂາວ (White Cat)", "30": "ວີຊັນ (Mink)",
-            "31": "ເຈຍ (Bat)", "32": "ໝາຈອກເງິນ (Silver Fox)", "33": "ແກະ (Sheep)", "34": "ແກະເຖິກ (Ram)", "35": "ແມວລາຍ (Barcino Cat)",
-            "36": "ກະຮອກ (Squirrel)", "37": "ໂຄອາລ່າ (Koala)", "38": "ເສືອພູເຂົາ (Puma)", "39": "ກະທ້າງ (Lizard)", "40": "ໝີດຳ (Black Bear)",
-            "41": "ໝູ (Pig)", "42": "ແຂ້ (Crocodile)", "43": "ຄັນຄາກ (Toad)", "44": "ກໍລິລ່າ (Gorilla)", "45": "ງົວຜູ້ (Ox)",
-            "46": "ໝາຈອກແດງ (Red Fox)", "47": "ມ້າດຳ (Black Horse)", "48": "ຊິມແປນຊີ (Chimpanzee)", "49": "ໄບຊັນ (Bison)", "50": "ແມວແອງໂກລາ (Angora Cat)",
-            "51": "ຊ່າງໄມ້ (Carpenter)", "52": "ຈິ້ງໂຈ́ (Kangaroo)", "53": "ສິງໂຕທະເລ (Sea Lion)", "54": "ງົວແມ່ (Cow)", "55": "ຊ້າງ (Elephant)",
-            "56": "ໝາປ່າ (Wolf)", "57": "ອູດສອງໜົກ (Camel)", "58": "ກົບ (Frog)", "59": "ເຕົ່າ (Tortoise)", "60": "ໝາໄມ້ (Marten)",
-            "61": "ແມມມອນ (Mammoth)", "62": "ມໍສ (Walrus)", "63": "ສິງໂຕ (Lion)", "64": "ໄຮຢີນ້າ (Hyena)", "65": "ພັງພອນ (Weasel)",
-            "66": "ຄົນຫາປາ (Fisherman)", "67": "ງູຢາຣາຣາ (Yarara Snake)", "68": "ມ້າລາຍດ່າງ (Obero Horse)", "69": "ລາ (Donkey)", "70": "ວິດຄາຊາ (Vizcacha)",
-            "71": "ສົມເສັດ (Tapir)", "72": "ກະຕ່າຍປ່າ (Hare)", "73": "ກະທ້າງໃຫຍ່ (Iguana)", "74": "ເສືອດຳ (Black Panther)", "75": "ເສືອດາວ (Leopard)",
-            "76": "ມັງກອນ (Dragon)", "77": "ຢີຣາຟ (Giraffe)", "78": "ງູເຫຼືອມ (Boa)", "79": "ໝາໄນ (Jackal)", "80": "ເສືອຈາກົວ (Jaguar)",
-            "81": "ກວາງເຣນເດຍ (Reindeer)", "82": "ເສືອໂຄ່ງ (Tiger)", "83": "ໝ化ຈອກເທົາ (Gray Fox)", "84": "ຈິ້ງຈົກ (Lizard)", "85": "ໝູປ່າເປກາຣີ (Peccary)",
-            "86": "ໝີສີນ້ຳຕານ (Brown Bear)", "87": "ຕົວອ້ານ (Anteater)", "88": "ກະປອມປ່ຽນສີ (Chameleon)", "89": "ໂຕໜູໃຫຍ່ (Rat)", "90": "ແຂ້ເຄແມນ (Caiman)",
-            "91": "ຕົວນິ້ມ (Armadillo)", "92": "ກະຕ່າຍ (Rabbit)", "93": "ໝີຂາວ (White Bear)", "94": "ແຂ້ຢາຄາເຣ (Yacare)", "95": "ມ້າແມ່ (Mare)",
-            "96": "ກວາງ (Deer)", "97": "ມາໝອດ (Marmot)", "98": "ໝີເທົາ (Gray Bear)", "99": "ລີງ (Monkey)"
-        };
+    <!-- ===== TAB: STATS ===== -->
+    <div id="panel-stats" class="space-y-4 hidden">
 
-        const statusDot = document.getElementById('status-dot');
-        const statusText = document.getElementById('status-text');
-        database.ref(".info/connected").on("value", (snap) => {
-            if (snap.val() === true) {
-                statusDot.className = "h-1.5 w-1.5 rounded-full bg-emerald-400";
-                statusText.innerText = "Engine Live";
-            } else {
-                statusDot.className = "h-1.5 w-1.5 rounded-full bg-rose-400 animate-pulse";
-                statusText.innerText = "Offline";
-            }
+        <!-- Digit Frequency Heatmap -->
+        <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
+            <div class="flex items-center gap-2 mb-4">
+                <i class="fa-solid fa-fire text-red-400 text-sm"></i>
+                <h2 class="font-semibold text-sm text-slate-200">ຄວາມຖີ່ຕົວເລກ (Heatmap)</h2>
+            </div>
+            <div id="freq-heatmap" class="grid grid-cols-5 gap-2"></div>
+            <div class="flex items-center gap-2 mt-3 text-[10px] text-slate-500">
+                <span class="w-3 h-3 rounded bg-slate-700 inline-block"></span> ໜ້ອຍ
+                <span class="w-3 h-3 rounded bg-blue-800 inline-block ml-2"></span> ກາງ
+                <span class="w-3 h-3 rounded bg-amber-600 inline-block ml-2"></span> ສູງ
+                <span class="w-3 h-3 rounded bg-red-600 inline-block ml-2"></span> ສູງສຸດ
+            </div>
+        </div>
+
+        <!-- Gap / Due Analysis -->
+        <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
+            <div class="flex items-center gap-2 mb-4">
+                <i class="fa-solid fa-clock text-amber-400 text-sm"></i>
+                <h2 class="font-semibold text-sm text-slate-200">Gap Analysis — ຕົວເລກທີ່ "ຄ້າງ"</h2>
+            </div>
+            <p class="text-[11px] text-slate-500 mb-3 leading-relaxed">ຕົວເລກທີ່ບໍ່ໄດ້ອອກດົນ = ໂອກາດສູງຂຶ້ນ (ສົມມຸດຖານ mean reversion)</p>
+            <div id="gap-analysis" class="space-y-2"></div>
+        </div>
+
+        <!-- Pair Frequency -->
+        <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
+            <div class="flex items-center gap-2 mb-4">
+                <i class="fa-solid fa-link text-emerald-400 text-sm"></i>
+                <h2 class="font-semibold text-sm text-slate-200">Pair Frequency — ຄູ່ 2 ຕົວທ້າຍ</h2>
+            </div>
+            <p class="text-[11px] text-slate-500 mb-3">ຄູ່ 2D ທີ່ອອກເລື້ອຍທີ່ສຸດໃນ 20 ຄັ້ງລ່າສຸດ</p>
+            <div id="pair-freq" class="space-y-2"></div>
+        </div>
+
+        <!-- Backtest Result -->
+        <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
+            <div class="flex items-center gap-2 mb-4">
+                <i class="fa-solid fa-vial text-purple-400 text-sm"></i>
+                <h2 class="font-semibold text-sm text-slate-200">Backtest — ທົດສອບ Logic ໃນອະດີດ</h2>
+            </div>
+            <p class="text-[11px] text-slate-500 mb-3">ຈຳລອງ: ຖ້າທ່ານໃຊ້ Hot Pool 2D ໃນທຸກຄັ້ງ ຈະໄດ້ຜົນ 2D ຖືກ % ເທົ່າໃດ</p>
+            <div id="backtest-result" class="space-y-2"></div>
+        </div>
+    </div>
+
+    <!-- ===== TAB: GENERATE ===== -->
+    <div id="panel-gen" class="space-y-4 hidden">
+        <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
+            <div class="flex items-center gap-2 mb-4">
+                <i class="fa-solid fa-wand-magic-sparkles text-amber-400 text-sm"></i>
+                <h2 class="font-semibold text-sm text-slate-200">Smart Combo Generator</h2>
+            </div>
+
+            <!-- Weight controls -->
+            <div class="space-y-3 mb-4 bg-slate-950/60 rounded-xl p-3 border border-slate-800">
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">ປັບນ້ຳໜັກ Signals</p>
+                <div>
+                    <div class="flex justify-between text-[11px] mb-1"><span class="text-slate-400">🔥 Hot Frequency</span><span id="w-hot-val" class="mono text-amber-400">50%</span></div>
+                    <input type="range" id="w-hot" min="0" max="100" value="50" oninput="updateWeights()" class="w-full accent-amber-400 h-1">
+                </div>
+                <div>
+                    <div class="flex justify-between text-[11px] mb-1"><span class="text-slate-400">⏳ Due/Gap Score</span><span id="w-due-val" class="mono text-rose-400">30%</span></div>
+                    <input type="range" id="w-due" min="0" max="100" value="30" oninput="updateWeights()" class="w-full accent-rose-400 h-1">
+                </div>
+                <div>
+                    <div class="flex justify-between text-[11px] mb-1"><span class="text-slate-400">🔗 Pair Affinity</span><span id="w-pair-val" class="mono text-emerald-400">20%</span></div>
+                    <input type="range" id="w-pair" min="0" max="100" value="20" oninput="updateWeights()" class="w-full accent-emerald-400 h-1">
+                </div>
+            </div>
+
+            <!-- Mode selector -->
+            <div class="grid grid-cols-3 gap-1.5 bg-slate-950 rounded-xl p-1 border border-slate-800 mb-4">
+                <button onclick="setDigitMode(2)" id="mode-2d" class="py-2 rounded-lg text-[11px] font-bold tab-active">2D (15 ຊຸດ)</button>
+                <button onclick="setDigitMode(3)" id="mode-3d" class="py-2 rounded-lg text-[11px] font-bold tab-inactive">3D (10 ຊຸດ)</button>
+                <button onclick="setDigitMode(6)" id="mode-6d" class="py-2 rounded-lg text-[11px] font-bold tab-inactive">6D (8 ຊຸດ)</button>
+            </div>
+
+            <button onclick="generateCombos()"
+                class="w-full bg-gradient-to-r from-amber-500 to-red-500 text-slate-950 font-bold text-sm py-3.5 rounded-xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2 mb-4">
+                <i class="fa-solid fa-dice"></i> ສ້າງຊຸດທີ່ດີທີ່ສຸດ
+            </button>
+
+            <div id="gen-output" class="hidden">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[10px] text-slate-500 uppercase tracking-wider font-bold">ຜົນການສ້າງຊຸດ</span>
+                    <span id="gen-count" class="mono text-[10px] text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full">0 ຊຸດ</span>
+                </div>
+                <div id="tickets-container" class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-1 max-h-72 overflow-y-auto"></div>
+                <p class="text-[10px] text-slate-500 mt-2 leading-relaxed">
+                    <i class="fa-solid fa-circle-info text-indigo-400"></i>
+                    ຊຸດຖືກຈັດລຳດັບຕາມ <strong class="text-slate-300">Score ລວມ</strong> (Frequency + Due + Pair) — ຊຸດທີ 1 = ດີທີ່ສຸດຕາມສະຖິຕິ
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== TAB: HISTORY ===== -->
+    <div id="panel-hist" class="space-y-3 hidden">
+        <div class="flex items-center justify-between mb-1">
+            <span class="text-[10px] text-slate-500 uppercase tracking-wider font-bold">ປະຫວັດທັງໝົດ</span>
+            <span id="hist-count" class="mono text-[10px] text-slate-500">0 entries</span>
+        </div>
+        <div id="history-list" class="space-y-2"></div>
+        <div id="empty-hist" class="text-center py-12 text-sm text-slate-600 italic">
+            <i class="fa-solid fa-database text-2xl mb-2 block"></i>
+            ຍັງບໍ່ມີຂໍ້ມູນ
+        </div>
+    </div>
+
+</div>
+
+<!-- SETTINGS MODAL -->
+<div id="settings-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-end justify-center hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-t-2xl w-full max-w-md p-6 pb-10 shadow-2xl">
+        <h3 class="font-bold text-sm text-slate-100 mb-1">ຕັ້ງຄ່າ Gemini API Key</h3>
+        <p class="text-[11px] text-slate-400 mb-4">ສຳລັບ AI ວິເຄາະຜົນຫວຍທັນທີ</p>
+        <input type="password" id="api-key-input" placeholder="AIzaSy..."
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm mono text-slate-200 focus:outline-none focus:border-indigo-500 mb-4">
+        <div class="flex gap-3">
+            <button onclick="closeSettingsModal()" class="flex-1 bg-slate-800 text-slate-300 text-xs font-semibold py-2.5 rounded-xl">ຍົກເລີກ</button>
+            <button onclick="saveSettings()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold py-2.5 rounded-xl">ບັນທຶກ</button>
+        </div>
+    </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div id="delete-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-xs w-full mx-4">
+        <div class="text-rose-500 text-2xl text-center mb-2"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <h3 class="font-bold text-sm text-center mb-4">ຢືນຢັນລຶບຂໍ້ມູນ?</h3>
+        <div class="flex gap-3">
+            <button onclick="closeDeleteModal()" class="flex-1 bg-slate-800 text-slate-300 text-xs font-semibold py-2.5 rounded-xl">ຍົກເລີກ</button>
+            <button id="confirm-delete-btn" class="flex-1 bg-rose-600 text-white text-xs font-semibold py-2.5 rounded-xl">ລຶບ</button>
+        </div>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-700 text-slate-100 text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 min-w-[260px] justify-center transition-all duration-300 translate-y-20 opacity-0 z-50">
+    <span id="toast-icon"></span><span id="toast-msg"></span>
+</div>
+
+<script>
+// ─── FIREBASE ───────────────────────────────────────────────
+const firebaseConfig = {
+    apiKey: "AIzaSyC0qZf7frh9BYjtb6iZnWjfMjMnhucfAhI",
+    authDomain: "lao-lottery-engine.firebaseapp.com",
+    databaseURL: "https://lao-lottery-engine-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "lao-lottery-engine",
+    storageBucket: "lao-lottery-engine.firebasestorage.app",
+    messagingSenderId: "780776961991",
+    appId: "1:780776961991:web:480fef483ee174377e4be2",
+    measurementId: "G-3C8CT0YFYF"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ─── STATE ───────────────────────────────────────────────────
+let allDraws = [];          // sorted newest first
+let freqMap = Array(10).fill(0);
+let pairFreqMap = {};       // "XY" => count
+let digitLastSeen = {};     // digit => draw index (0=latest)
+let currentDigitMode = 2;
+let activeDeleteKey = null;
+
+// ─── CONNECTION STATUS ────────────────────────────────────────
+db.ref(".info/connected").on("value", snap => {
+    const dot = document.getElementById('status-dot');
+    const txt = document.getElementById('status-text');
+    if (snap.val()) {
+        dot.className = "h-1.5 w-1.5 rounded-full bg-emerald-400";
+        txt.textContent = "ເຊື່ອມຕໍ່ແລ້ວ";
+    } else {
+        dot.className = "h-1.5 w-1.5 rounded-full bg-rose-400 animate-pulse";
+        txt.textContent = "ອອຟລາຍ";
+    }
+});
+
+// ─── INIT ────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('draw-date').value = new Date().toISOString().split('T')[0];
+    const key = localStorage.getItem('gemini_api_key');
+    if (key) document.getElementById('api-key-input').value = key;
+});
+
+// ─── REALTIME DATA ────────────────────────────────────────────
+db.ref('lottery_history').on('value', snap => {
+    const data = snap.val();
+    if (data) {
+        allDraws = Object.keys(data).map(k => ({ id: k, ...data[k] }))
+            .sort((a, b) => b.draw_date.localeCompare(a.draw_date));
+    } else {
+        allDraws = [];
+    }
+    processAllStats();
+    renderHistory();
+    renderStats();
+});
+
+// ─── PROCESS STATISTICS ──────────────────────────────────────
+function processAllStats() {
+    freqMap = Array(10).fill(0);
+    pairFreqMap = {};
+    digitLastSeen = {};
+
+    const recent20 = allDraws.slice(0, 20);
+
+    allDraws.forEach((draw, idx) => {
+        if (!draw.six_digit) return;
+        const digits = draw.six_digit.split('').map(Number);
+        digits.forEach(d => {
+            freqMap[d]++;
+            if (digitLastSeen[d] === undefined) digitLastSeen[d] = idx;
         });
+    });
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('draw-date').value = today;
-            const savedKey = localStorage.getItem('gemini_api_key');
-            if (savedKey) document.getElementById('api-key-input').value = savedKey;
+    // Fill missing digits
+    for (let d = 0; d <= 9; d++) {
+        if (digitLastSeen[d] === undefined) digitLastSeen[d] = allDraws.length;
+    }
+
+    // Pair frequency from recent 20
+    recent20.forEach(draw => {
+        if (!draw.two_digit) return;
+        const p = draw.two_digit;
+        pairFreqMap[p] = (pairFreqMap[p] || 0) + 1;
+    });
+
+    // Update summary bar
+    document.getElementById('stat-draws').textContent = allDraws.length;
+    const maxGap = Math.max(...Object.values(digitLastSeen));
+    document.getElementById('stat-due').textContent = maxGap === 0 ? '-' : maxGap + ' ຄັ້ງ';
+
+    // Backtest hit rate
+    const hitRate = computeBacktestHitRate();
+    document.getElementById('stat-hitrate').textContent = hitRate >= 0 ? hitRate + '%' : '-';
+}
+
+// ─── BACKTEST LOGIC ───────────────────────────────────────────
+function computeBacktestHitRate() {
+    if (allDraws.length < 4) return -1;
+    let hits = 0; let tested = 0;
+    for (let i = 1; i < allDraws.length; i++) {
+        const trainingData = allDraws.slice(i);
+        if (trainingData.length < 2) continue;
+
+        const trainFreq = Array(10).fill(0);
+        trainingData.forEach(d => {
+            if (d.six_digit) d.six_digit.split('').forEach(c => trainFreq[parseInt(c)]++);
         });
+        const hotDigits = trainFreq.map((c,i) => ({d:i,c})).sort((a,b) => b.c-a.c).slice(0,6).map(x => x.d);
 
-        database.ref('lottery_history').on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                document.getElementById('total-draws').innerText = `${Object.keys(data).length} draws loaded`;
-                processMandelPool(data);
-                populateHistoryLedger(data);
-                databaseLoaded = true;
-            } else {
-                document.getElementById('total-draws').innerText = "0 draws loaded";
-                document.getElementById('hot-pool').innerText = "[No Data]";
-                document.getElementById('cold-pool').innerText = "Δ Waiting";
-                highlyFrequentDigits = [1, 2, 3, 5, 7, 8, 9]; // Default 7 digits
-                currentDatabaseSeed = 12345;
-                databaseLoaded = true;
+        const hotPairs = new Set();
+        hotDigits.forEach(a => hotDigits.forEach(b => { if(a!==b) hotPairs.add(`${a}${b}`); }));
+
+        const actual2D = allDraws[i-1].two_digit;
+        if (actual2D && hotPairs.has(actual2D)) hits++;
+        tested++;
+    }
+    return tested > 0 ? Math.round((hits / tested) * 100) : -1;
+}
+
+// ─── RENDER STATS ─────────────────────────────────────────────
+function renderStats() {
+    renderHeatmap();
+    renderGapAnalysis();
+    renderPairFreq();
+    renderBacktest();
+}
+
+function renderHeatmap() {
+    const container = document.getElementById('freq-heatmap');
+    container.innerHTML = '';
+    const max = Math.max(...freqMap, 1);
+    for (let d = 0; d <= 9; d++) {
+        const ratio = freqMap[d] / max;
+        let heatClass = 'heat-0';
+        if (ratio > 0.75) heatClass = 'heat-4';
+        else if (ratio > 0.5) heatClass = 'heat-3';
+        else if (ratio > 0.25) heatClass = 'heat-2';
+        else if (ratio > 0) heatClass = 'heat-1';
+
+        const cell = document.createElement('div');
+        cell.className = `${heatClass} rounded-xl p-3 text-center transition`;
+        cell.innerHTML = `<div class="mono text-xl font-bold">${d}</div><div class="text-[10px] mt-0.5 opacity-70">${freqMap[d]}x</div>`;
+        container.appendChild(cell);
+    }
+}
+
+function renderGapAnalysis() {
+    const container = document.getElementById('gap-analysis');
+    container.innerHTML = '';
+    const maxGap = Math.max(...Object.values(digitLastSeen), 1);
+
+    const sorted = Object.keys(digitLastSeen)
+        .map(d => ({ d: parseInt(d), gap: digitLastSeen[d] }))
+        .sort((a, b) => b.gap - a.gap);
+
+    sorted.forEach(({ d, gap }) => {
+        const pct = Math.round((gap / maxGap) * 100);
+        let cls = 'due-low'; let label = 'ປົກກະຕິ';
+        if (pct > 70) { cls = 'due-high'; label = '🔴 ຄ້າງດົນ'; }
+        else if (pct > 35) { cls = 'due-mid'; label = '🟡 ເລີ່ມຄ້າງ'; }
+
+        container.innerHTML += `
+        <div class="flex items-center gap-3 py-1">
+            <span class="mono font-bold text-sm w-5 text-center ${cls}">${d}</span>
+            <div class="flex-1">
+                <div class="bg-slate-800 rounded-full h-1.5"><div class="bar-fill" style="width:${pct}%"></div></div>
+            </div>
+            <span class="text-[10px] text-slate-500 w-12 text-right">${gap === allDraws.length ? 'ບໍ່ເຄີຍ' : gap + ' ຄັ້ງກ່ອນ'}</span>
+            <span class="text-[9px] ${cls} w-16 text-right">${label}</span>
+        </div>`;
+    });
+    if (sorted.length === 0) container.innerHTML = '<p class="text-slate-600 text-xs italic">ຕ້ອງການຂໍ້ມູນ</p>';
+}
+
+function renderPairFreq() {
+    const container = document.getElementById('pair-freq');
+    container.innerHTML = '';
+    const sorted = Object.entries(pairFreqMap).sort((a,b) => b[1]-a[1]).slice(0, 10);
+    const max = sorted[0]?.[1] || 1;
+
+    sorted.forEach(([pair, cnt]) => {
+        const pct = Math.round((cnt / max) * 100);
+        container.innerHTML += `
+        <div class="flex items-center gap-3 py-1">
+            <span class="mono font-bold text-base text-amber-400 w-8">${pair}</span>
+            <div class="flex-1"><div class="bg-slate-800 rounded-full h-1.5"><div class="bar-fill" style="width:${pct}%"></div></div></div>
+            <span class="mono text-[11px] text-slate-400">${cnt}x</span>
+        </div>`;
+    });
+    if (sorted.length === 0) container.innerHTML = '<p class="text-slate-600 text-xs italic">ຕ້ອງການຂໍ້ມູນ ≥ 2 ຄັ້ງ</p>';
+}
+
+function renderBacktest() {
+    const container = document.getElementById('backtest-result');
+    if (allDraws.length < 4) {
+        container.innerHTML = '<p class="text-slate-600 text-xs italic">ຕ້ອງການຂໍ້ມູນຢ່າງໜ້ອຍ 4 ຄັ້ງ</p>';
+        return;
+    }
+
+    let hits2D = 0, hits3D = 0, tested = 0;
+    for (let i = 1; i < Math.min(allDraws.length, 30); i++) {
+        const training = allDraws.slice(i);
+        const trainFreq = Array(10).fill(0);
+        training.forEach(d => { if(d.six_digit) d.six_digit.split('').forEach(c => trainFreq[parseInt(c)]++); });
+        const hot6 = trainFreq.map((c,j)=>({d:j,c})).sort((a,b)=>b.c-a.c).slice(0,6).map(x=>x.d);
+
+        const hotPairs = new Set();
+        hot6.forEach(a => hot6.forEach(b => { if(a!==b) hotPairs.add(`${a}${b}`); }));
+
+        const hot3Triples = new Set();
+        hot6.forEach(a => hot6.forEach(b => hot6.forEach(c => {
+            if(a!==b&&b!==c&&a!==c) hot3Triples.add(`${a}${b}${c}`);
+        })));
+
+        const actual = allDraws[i-1];
+        if (actual.two_digit && hotPairs.has(actual.two_digit)) hits2D++;
+        if (actual.three_digit && hot3Triples.has(actual.three_digit)) hits3D++;
+        tested++;
+    }
+
+    const r2 = tested > 0 ? Math.round((hits2D/tested)*100) : 0;
+    const r3 = tested > 0 ? Math.round((hits3D/tested)*100) : 0;
+
+    container.innerHTML = `
+    <div class="space-y-3">
+        <div class="flex items-center justify-between bg-slate-950/60 rounded-xl px-4 py-3 border border-slate-800">
+            <div><div class="text-xs font-bold text-slate-300">2D Hit Rate</div><div class="text-[10px] text-slate-500 mt-0.5">Hot Pool 6 ຕົວ → 2D ຖືກ</div></div>
+            <div class="text-right"><div class="mono text-2xl font-bold ${r2 >= 50 ? 'text-emerald-400' : r2 >= 30 ? 'text-amber-400' : 'text-rose-400'}">${r2}%</div><div class="text-[9px] text-slate-500">${hits2D}/${tested} ຄັ້ງ</div></div>
+        </div>
+        <div class="flex items-center justify-between bg-slate-950/60 rounded-xl px-4 py-3 border border-slate-800">
+            <div><div class="text-xs font-bold text-slate-300">3D Hit Rate</div><div class="text-[10px] text-slate-500 mt-0.5">Hot Pool 6 ຕົວ → 3D ຖືກ</div></div>
+            <div class="text-right"><div class="mono text-2xl font-bold ${r3 >= 30 ? 'text-emerald-400' : r3 >= 15 ? 'text-amber-400' : 'text-rose-400'}">${r3}%</div><div class="text-[9px] text-slate-500">${hits3D}/${tested} ຄັ້ງ</div></div>
+        </div>
+        <p class="text-[10px] text-slate-600 italic leading-relaxed">ທົດສອບກັບ ${tested} ຄັ້ງຫຼ້າສຸດ (max 30). ຕົວເລກສູງ = ຮູບແບບ logic ດີ, ຕ່ຳ = ຂໍ້ມູນສຸ່ມ.</p>
+    </div>`;
+}
+
+// ─── GENERATE COMBOS ─────────────────────────────────────────
+function updateWeights() {
+    document.getElementById('w-hot-val').textContent = document.getElementById('w-hot').value + '%';
+    document.getElementById('w-due-val').textContent = document.getElementById('w-due').value + '%';
+    document.getElementById('w-pair-val').textContent = document.getElementById('w-pair').value + '%';
+}
+
+function scoreDigit(d, wHot, wDue, wPair) {
+    const maxFreq = Math.max(...freqMap, 1);
+    const maxGap  = Math.max(...Object.values(digitLastSeen), 1);
+    const hotScore = (freqMap[d] / maxFreq) * wHot;
+    const gapScore = ((digitLastSeen[d] || 0) / maxGap) * wDue;
+
+    // pair score: avg pair freq with other frequent digits
+    const topPairs = Object.entries(pairFreqMap).sort((a,b) => b[1]-a[1]).slice(0,5);
+    const maxPair = topPairs[0]?.[1] || 1;
+    let pairScore = 0;
+    topPairs.forEach(([pair, cnt]) => {
+        if (pair.includes(String(d))) pairScore += cnt / maxPair;
+    });
+    pairScore = (pairScore / 5) * wPair;
+
+    return hotScore + gapScore + pairScore;
+}
+
+function generateCombos() {
+    const wHot  = parseInt(document.getElementById('w-hot').value);
+    const wDue  = parseInt(document.getElementById('w-due').value);
+    const wPair = parseInt(document.getElementById('w-pair').value);
+
+    // Score all digits
+    const scored = [];
+    for (let d = 0; d <= 9; d++) {
+        scored.push({ d, score: scoreDigit(d, wHot, wDue, wPair) });
+    }
+    scored.sort((a, b) => b.score - a.score);
+
+    const top7 = scored.slice(0, 7).map(x => x.d);
+
+    let tickets = [];
+
+    if (currentDigitMode === 2) {
+        // All ordered pairs from top 7, scored by sum
+        const candidates = [];
+        top7.forEach(a => top7.forEach(b => {
+            if (a !== b) {
+                const s = scoreDigit(a, wHot, wDue, wPair) + scoreDigit(b, wHot, wDue, wPair)
+                        + (pairFreqMap[`${a}${b}`] || 0) * (wPair / 100);
+                candidates.push({ combo: `${a}${b}`, score: s });
             }
+        }));
+        candidates.sort((a, b) => b.score - a.score);
+        tickets = candidates.slice(0, 15);
+
+    } else if (currentDigitMode === 3) {
+        const candidates = [];
+        top7.forEach(a => top7.forEach(b => top7.forEach(c => {
+            if (a !== b && b !== c && a !== c) {
+                const s = scoreDigit(a,wHot,wDue,wPair) + scoreDigit(b,wHot,wDue,wPair) + scoreDigit(c,wHot,wDue,wPair);
+                candidates.push({ combo: `${a}${b}${c}`, score: s });
+            }
+        })));
+        candidates.sort((a, b) => b.score - a.score);
+        // Deduplicate by set content
+        const seen = new Set();
+        tickets = candidates.filter(t => {
+            const key = t.combo.split('').sort().join('');
+            if (seen.has(key)) return false;
+            seen.add(key); return true;
+        }).slice(0, 10);
+
+    } else {
+        // 6D: build 8 combos sampling by weight
+        const pool = top7;
+        const candidates = [];
+        for (let k = 0; k < 40; k++) {
+            const combo = [];
+            const usedIdx = new Set();
+            for (let pos = 0; pos < 6; pos++) {
+                // weighted random pick
+                const remaining = pool.filter((_, i) => !usedIdx.has(i));
+                const weights = remaining.map(d => scoreDigit(d, wHot, wDue, wPair) + 0.01);
+                const total = weights.reduce((a, b) => a + b, 0);
+                let r = Math.random() * total;
+                let chosen = remaining[0];
+                for (let i = 0; i < remaining.length; i++) {
+                    r -= weights[i];
+                    if (r <= 0) { chosen = remaining[i]; usedIdx.add(pool.indexOf(remaining[i])); break; }
+                }
+                combo.push(chosen);
+            }
+            const comboStr = combo.join('');
+            const s = combo.reduce((acc, d) => acc + scoreDigit(d, wHot, wDue, wPair), 0);
+            candidates.push({ combo: comboStr, score: s });
+        }
+        const seen = new Set();
+        tickets = candidates.filter(t => {
+            if (seen.has(t.combo)) return false;
+            seen.add(t.combo); return true;
+        }).sort((a,b) => b.score - a.score).slice(0, 8);
+    }
+
+    // Render
+    const container = document.getElementById('tickets-container');
+    container.innerHTML = '';
+    const maxScore = tickets[0]?.score || 1;
+    tickets.forEach((t, i) => {
+        const pct = Math.round((t.score / maxScore) * 100);
+        const row = document.createElement('div');
+        row.className = 'ticket-row flex items-center justify-between py-2 px-2 rounded-lg';
+        row.innerHTML = `
+            <div class="flex items-center gap-3">
+                <span class="text-[10px] text-slate-600 mono w-4">#${i+1}</span>
+                <span class="mono font-bold text-base tracking-widest text-amber-400">${t.combo}</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-16 bg-slate-800 rounded-full h-1"><div class="bar-fill" style="width:${pct}%"></div></div>
+                <span class="score-pill bg-slate-800 text-slate-400">${pct}%</span>
+            </div>`;
+        container.appendChild(row);
+    });
+
+    document.getElementById('gen-count').textContent = tickets.length + ' ຊຸດ';
+    document.getElementById('gen-output').classList.remove('hidden');
+}
+
+// ─── SUBMIT DRAW ─────────────────────────────────────────────
+function submitDraw() {
+    const dateVal = document.getElementById('draw-date').value;
+    const textVal = document.getElementById('six-digit-input').value.trim();
+    if (!dateVal || textVal.length !== 6 || isNaN(textVal)) {
+        showToast('ກະລຸນາໃສ່ເລກ 6 ຕົວໃຫ້ຄົບ', 'error'); return;
+    }
+    const btn = document.getElementById('submit-draw-btn');
+    btn.disabled = true;
+    const key = dateVal.replace(/-/g, '_') + '_draw';
+    db.ref('lottery_history/' + key).set({
+        draw_date: dateVal,
+        six_digit: textVal,
+        three_digit: textVal.substring(3, 6),
+        two_digit: textVal.substring(4, 6),
+        digits_array: textVal.split('').map(Number)
+    }).then(() => {
+        document.getElementById('six-digit-input').value = '';
+        btn.disabled = false;
+        showToast('ບັນທຶກ & ວິເຄາະສຳເລັດ!', 'success');
+        runGeminiAnalysis(dateVal, textVal);
+    });
+}
+
+// ─── HISTORY ─────────────────────────────────────────────────
+function renderHistory() {
+    const container = document.getElementById('history-list');
+    const empty = document.getElementById('empty-hist');
+    container.innerHTML = '';
+    document.getElementById('hist-count').textContent = allDraws.length + ' entries';
+
+    if (allDraws.length === 0) { empty.classList.remove('hidden'); return; }
+    empty.classList.add('hidden');
+
+    allDraws.forEach(rec => {
+        const full = rec.six_digit || '------';
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 hover:border-slate-700 transition';
+        row.innerHTML = `
+            <div>
+                <div class="text-[10px] text-slate-500 font-semibold">${rec.draw_date}</div>
+                <div class="mono text-lg mt-0.5">
+                    <span class="text-slate-500">${full.substring(0,3)}</span><span class="text-indigo-400">${full.substring(3,4)}</span><span class="text-amber-400 font-bold">${full.substring(4,6)}</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="text-right">
+                    <div class="text-[10px] text-slate-500">3D: <span class="text-slate-300 font-bold mono">${rec.three_digit||'---'}</span></div>
+                    <div class="text-[10px] text-slate-500">2D: <span class="text-amber-400 font-bold mono">${rec.two_digit||'--'}</span></div>
+                </div>
+                <button onclick="openDeleteModal('${rec.id}')" class="text-slate-600 hover:text-rose-500 transition p-1">
+                    <i class="fa-solid fa-trash-can text-sm"></i>
+                </button>
+            </div>`;
+        container.appendChild(row);
+    });
+}
+
+// ─── AI ANALYSIS ─────────────────────────────────────────────
+async function runGeminiAnalysis(date, number) {
+    const panel = document.getElementById('ai-panel');
+    const loading = document.getElementById('ai-loading');
+    const content = document.getElementById('ai-content');
+    panel.classList.remove('hidden');
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+
+    const apiKey = localStorage.getItem('gemini_api_key');
+    if (!apiKey) {
+        loading.classList.add('hidden');
+        content.innerHTML = '<p class="text-amber-400 text-[11px] text-center">⚙️ ກະລຸນາຕັ້ງຄ່າ Gemini API Key ກ່ອນ</p>';
+        content.classList.remove('hidden');
+        return;
+    }
+
+    const pair = number.substring(4, 6);
+    const prompt = `ວິເຄາະຜົນຫວຍລາວ: ວັນທີ ${date}, ຜົນ ${number}. ໃຊ້ 3 ຍ່ໍຫໍ້ສັ້ນໆ: 1) ນາມສັດ 2D "${pair}" ໃນດ້ານໂຊກ, 2) ວິເຄາະຄີ/ຄູ່/ສູງ/ຕ່ຳ, 3) ຄາດເດົາ 2D ຄັ້ງຕໍ່ໄປຕາມຮູບແບບ. ຕອບເປັນພາສາລາວ.`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+    try {
+        const res = await fetch(url, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         });
+        if (!res.ok) throw new Error();
+        const json = await res.json();
+        const text = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        content.innerHTML = text.split('\n\n').map(p => `<p class="mb-2">${p}</p>`).join('');
+        loading.classList.add('hidden');
+        content.classList.remove('hidden');
+    } catch {
+        loading.classList.add('hidden');
+        content.innerHTML = '<p class="text-rose-400 text-[11px]">❌ ບໍ່ສາມາດເຊື່ອມ Gemini ໄດ້</p>';
+        content.classList.remove('hidden');
+    }
+}
 
-        function processMandelPool(historyData) {
-            frequencyMap = Array(10).fill(0);
-            Object.values(historyData).forEach(draw => {
-                if(draw.digits_array) {
-                    draw.digits_array.forEach(digit => { frequencyMap[parseInt(digit)]++; });
-                }
-            });
+// ─── TABS ─────────────────────────────────────────────────────
+const panels = ['add','stats','gen','hist'];
+function switchTab(t) {
+    panels.forEach(p => {
+        document.getElementById('panel-' + p).classList.toggle('hidden', p !== t);
+        const btn = document.getElementById('tab-' + p);
+        if (p === t) { btn.classList.add('tab-active'); btn.classList.remove('tab-inactive'); }
+        else { btn.classList.remove('tab-active'); btn.classList.add('tab-inactive'); }
+    });
+    if (t === 'stats') renderStats();
+}
 
-            let sorted = frequencyMap.map((count, idx) => ({ digit: idx, count: count })).sort((a,b) => b.count - a.count);
-            
-            // CRITICAL UPDATE: EXTEND HOT POOL TO 7 DIGITS
-            highlyFrequentDigits = sorted.slice(0, 7).map(item => item.digit);
-            
-            document.getElementById('hot-pool').innerText = `[${highlyFrequentDigits.slice(0,4).join(',')}+3]`;
-            
-            const sortedRecords = Object.values(historyData).sort((a, b) => b.draw_date.localeCompare(a.draw_date));
-            if (sortedRecords.length > 0 && sortedRecords[0].digits_array) {
-                const arr = sortedRecords[0].digits_array;
-                let sumDiff = 0;
-                for (let i = 0; i < arr.length - 1; i++) {
-                    sumDiff += Math.abs(arr[i+1] - arr[i]);
-                }
-                const harveyDelta = (sumDiff / (arr.length - 1)).toFixed(2);
-                document.getElementById('cold-pool').innerText = `Δ = ${harveyDelta}`;
-                
-                const seedStr = sortedRecords[0].draw_date + "_" + sortedRecords[0].six_digit + "_" + sortedRecords.length;
-                let hash = 0;
-                for (let i = 0; i < seedStr.length; i++) {
-                    hash = (hash << 5) - hash + seedStr.charCodeAt(i);
-                    hash |= 0;
-                }
-                currentDatabaseSeed = Math.abs(hash);
-            } else {
-                document.getElementById('cold-pool').innerText = `Δ = 2.50`;
-                currentDatabaseSeed = 12345;
-            }
-        }
+// ─── DIGIT MODE ───────────────────────────────────────────────
+function setDigitMode(m) {
+    currentDigitMode = m;
+    [2,3,6].forEach(x => {
+        const btn = document.getElementById('mode-' + x + 'd');
+        if (x === m) { btn.classList.add('tab-active'); btn.classList.remove('tab-inactive'); }
+        else { btn.classList.remove('tab-active'); btn.classList.add('tab-inactive'); }
+    });
+}
 
-        function populateHistoryLedger(historyData) {
-            const container = document.getElementById('history-scroll-container');
-            container.innerHTML = '';
-            const sortedRecords = Object.keys(historyData).map(key => ({
-                id: key,
-                ...historyData[key]
-            })).sort((a, b) => b.draw_date.localeCompare(a.draw_date));
+// ─── MODALS ───────────────────────────────────────────────────
+function openSettingsModal() { document.getElementById('settings-modal').classList.remove('hidden'); }
+function closeSettingsModal() { document.getElementById('settings-modal').classList.add('hidden'); }
+function saveSettings() {
+    const k = document.getElementById('api-key-input').value.trim();
+    if (k) localStorage.setItem('gemini_api_key', k); else localStorage.removeItem('gemini_api_key');
+    closeSettingsModal(); showToast('ບັນທຶກສຳເລັດ', 'success');
+}
 
-            sortedRecords.forEach(record => {
-                const row = document.createElement('div');
-                row.className = "flex items-center justify-between bg-slate-950/60 p-3 rounded-xl border border-slate-900 hover:border-slate-800 transition duration-150";
-                const full6D = record.six_digit;
-                row.innerHTML = `
-                    <div class="flex flex-col">
-                        <span class="text-xs text-slate-400 font-semibold">${record.draw_date}</span>
-                        <div class="text-base font-mono mt-0.5 tracking-wider">
-                            <span class="text-slate-500">${full6D.substring(0, 3)}</span><span class="text-indigo-400 font-medium">${full6D.substring(3, 4)}</span><span class="text-amber-400 font-bold">${full6D.substring(4, 6)}</span>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <div class="text-right flex flex-col text-[10px] font-mono text-slate-500">
-                            <span>3D: <strong class="text-slate-300">${record.three_digit}</strong></span>
-                            <span>2D: <strong class="text-slate-300">${record.two_digit}</strong></span>
-                        </div>
-                        <button type="button" onclick="openDeleteModal('${record.id}')" class="text-slate-600 hover:text-rose-500 transition p-1">
-                            <i class="fa-solid fa-trash-can text-sm"></i>
-                        </button>
-                    </div>
-                `;
-                container.appendChild(row);
-            });
-        }
+function openDeleteModal(key) {
+    activeDeleteKey = key;
+    document.getElementById('delete-modal').classList.remove('hidden');
+}
+function closeDeleteModal() { document.getElementById('delete-modal').classList.add('hidden'); }
+document.getElementById('confirm-delete-btn').addEventListener('click', () => {
+    if (activeDeleteKey) {
+        db.ref('lottery_history/' + activeDeleteKey).remove()
+            .then(() => { showToast('ລຶບສຳເລັດ', 'success'); closeDeleteModal(); });
+    }
+});
 
-        function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast-notification');
-            const toastMsg = document.getElementById('toast-message');
-            const toastIcon = document.getElementById('toast-icon');
-            toastMsg.innerText = message;
-            toastIcon.innerHTML = type === 'success' ? `<i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>` : `<i class="fa-solid fa-circle-exclamation text-rose-400 text-sm"></i>`;
-            toast.classList.remove('translate-y-20', 'opacity-0');
-            toast.classList.add('translate-y-0', 'opacity-100');
-            setTimeout(() => {
-                toast.classList.remove('translate-y-0', 'opacity-100');
-                toast.classList.add('translate-y-20', 'opacity-0');
-            }, 3000);
-        }
-
-        function openSettingsModal() {
-            const modal = document.getElementById('settings-modal');
-            modal.classList.remove('hidden');
-            setTimeout(() => { modal.classList.remove('opacity-0'); modal.querySelector('div').className = modal.querySelector('div').className.replace('scale-95', 'scale-100'); }, 10);
-        }
-        function closeSettingsModal() {
-            const modal = document.getElementById('settings-modal');
-            modal.classList.add('opacity-0');
-            setTimeout(() => { modal.classList.add('hidden'); }, 300);
-        }
-        document.getElementById('save-settings-btn').addEventListener('click', () => {
-            const keyVal = document.getElementById('api-key-input').value.trim();
-            if (keyVal) { localStorage.setItem('gemini_api_key', keyVal); showToast("ບັນທຶກ API Key ສຳເລັດແລ້ວ!", "success"); }
-            else { localStorage.removeItem('gemini_api_key'); }
-            closeSettingsModal();
-        });
-
-        function openDeleteModal(nodeKey) {
-            activeDeleteKey = nodeKey;
-            const modal = document.getElementById('delete-modal');
-            modal.classList.remove('hidden');
-            setTimeout(() => { modal.classList.remove('opacity-0'); }, 10);
-        }
-        function closeDeleteModal() {
-            const modal = document.getElementById('delete-modal');
-            modal.classList.add('opacity-0');
-            setTimeout(() => { modal.classList.add('hidden'); }, 300);
-        }
-        document.getElementById('confirm-delete-btn').addEventListener('click', () => {
-            if (activeDeleteKey) {
-                database.ref('lottery_history/' + activeDeleteKey).remove()
-                    .then(() => { showToast("ລຶບຂໍ້ມູນສຳເລັດແລ້ວ!", "success"); closeDeleteModal(); });
-            }
-        });
-
-        function toggleHistoryCollapse() {
-            const container = document.getElementById('history-scroll-container');
-            const button = document.getElementById('toggle-history-btn');
-            isHistoryCollapsed = !isHistoryCollapsed;
-            container.classList.toggle('hidden', isHistoryCollapsed);
-            button.innerText = isHistoryCollapsed ? "ສະແດງ" : "ຫຍໍ້ເຂົ້າ";
-        }
-
-        async function runGeminiAnalysis(date, fullNumber) {
-            const aiPanel = document.getElementById('ai-panel');
-            const aiLoading = document.getElementById('ai-loading');
-            const aiContent = document.getElementById('ai-content');
-            aiPanel.classList.remove('hidden'); aiLoading.classList.remove('hidden'); aiContent.classList.add('hidden');
-
-            const tail2D = fullNumber.substring(4, 6);
-            const animalName = laoAnimalChart[tail2D] || "ບໍ່ພົບຂໍ້ມູນ";
-            const geminiApiKey = localStorage.getItem('gemini_api_key');
-            if (!geminiApiKey) {
-                aiLoading.classList.add('hidden');
-                aiContent.innerHTML = `<p class="text-amber-400 font-bold text-xs text-center">⚙️ ກະລຸນາຕັ້ງຄ່າ API Key ດ້ານເທິງຂວາມືກ່ອນ!</p>`;
-                aiContent.classList.remove('hidden');
-                return;
-            }
-
-            const promptText = `Analyze Lao Lottery. Date: ${date}, Win: ${fullNumber}. Paragraph 1: Lao Animal Symbolism for "${tail2D}" (${animalName}). Paragraph 2: Digit analysis (Odd/Even, High/Low, Duplicates). Paragraph 3: Combine with Mandel-Selbee systems. Write entirely in beautiful Lao language (3 short paragraphs).`;
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
-
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-                });
-                if (!response.ok) throw new Error("API Connection failed");
-                const result = await response.json();
-                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (text) {
-                    aiContent.innerHTML = text.split('\n\n').map(p => `<p class="mb-2 text-slate-300">${p}</p>`).join('');
-                    aiLoading.classList.add('hidden'); aiContent.classList.remove('hidden');
-                }
-            } catch (error) {
-                aiLoading.classList.add('hidden');
-                aiContent.innerHTML = `<p class="text-rose-400 text-[11px]">Error running AI analysis. Please verify API key.</p>`;
-                aiContent.classList.remove('hidden');
-            }
-        }
-
-        document.getElementById('draw-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const dateVal = document.getElementById('draw-date').value;
-            const textVal = document.getElementById('six-digit-input').value.trim();
-            const submitBtn = document.getElementById('submit-draw-btn');
-
-            if(textVal.length !== 6 || isNaN(textVal)) return;
-
-            submitBtn.disabled = true;
-            database.ref('lottery_history/' + dateVal.replace(/-/g, '_') + "_draw").set({
-                draw_date: dateVal, six_digit: textVal, three_digit: textVal.substring(3, 6), two_digit: textVal.substring(4, 6), digits_array: textVal.split('').map(Number)
-            }).then(() => {
-                document.getElementById('six-digit-input').value = '';
-                submitBtn.disabled = false;
-                showToast("บันທຶກຂໍ້ມູນສຳເລັດ!", "success");
-                runGeminiAnalysis(dateVal, textVal);
-            });
-        });
-
-        function setDigitMode(mode) {
-            currentDigitMode = mode;
-            ['mode-2d', 'mode-3d', 'mode-6d'].forEach(id => document.getElementById(id).className = "py-2 rounded-lg");
-            document.getElementById('mode-' + mode + 'd').className = "py-2 rounded-lg text-white bg-slate-800 shadow-sm";
-        }
-
-        // --- EXTENDED COMBINATORIAL WHEELING LOGIC ---
-        document.getElementById('generate-btn').addEventListener('click', function() {
-            const container = document.getElementById('tickets-container');
-            container.innerHTML = ''; 
-            
-            let pool = [...highlyFrequentDigits];
-            if (!pool || pool.length < 5) pool = [0, 1, 2, 4, 7, 8, 9];
-
-            let localSeed = currentDatabaseSeed + currentDigitMode;
-            function getSeededRandom() {
-                let x = Math.sin(localSeed++) * 10000;
-                return x - Math.floor(x);
-            }
-            function shuffleArraySeeded(array) {
-                for (let i = array.length - 1; i > 0; i--) {
-                    const j = Math.floor(getSeededRandom() * (i + 1));
-                    [array[i], array[j]] = [array[j], array[i]];
-                }
-            }
-
-            // Guarantee pool has exactly 7 unique digits
-            while(pool.length < 7) {
-                let seedVal = Math.floor(getSeededRandom() * 10);
-                if (!pool.includes(seedVal)) pool.push(seedVal);
-            }
-            
-            let wheelTickets = [];
-
-            if (currentDigitMode === 2) {
-                // INCREASE TICKETS TO 12: Broad covering from 7-digit pool
-                for(let x = 0; x < pool.length; x++) {
-                    for(let y = 0; y < pool.length; y++) {
-                        if (x !== y) wheelTickets.push(`${pool[x]}${pool[y]}`);
-                    }
-                }
-                shuffleArraySeeded(wheelTickets);
-                wheelTickets = [...new Set(wheelTickets)].slice(0, 12);
-
-            } else if (currentDigitMode === 3) {
-                // INCREASE TICKETS TO 10: Balanced covering for 3D combinations
-                for(let i = 0; i < pool.length; i++) {
-                    let a = pool[i];
-                    let b = pool[(i + 1) % pool.length];
-                    let c = pool[(i + 2) % pool.length];
-                    let d = pool[(i + 4) % pool.length];
-                    wheelTickets.push(`${a}${b}${c}`);
-                    wheelTickets.push(`${b}${c}${d}`);
-                }
-                shuffleArraySeeded(wheelTickets);
-                wheelTickets = [...new Set(wheelTickets)].slice(0, 10);
-
-            } else {
-                // INCREASE TICKETS TO 8: System 6-Digit matrices
-                for(let k = 0; k < 8; k++) {
-                    let ticket = [];
-                    for(let pos = 0; pos < 6; pos++) {
-                        let offset = Math.floor(getSeededRandom() * pool.length);
-                        ticket.push(pool[(k + pos + offset) % pool.length]);
-                    }
-                    wheelTickets.push(ticket.join(''));
-                }
-                wheelTickets = [...new Set(wheelTickets)].slice(0, 8);
-            }
-
-            wheelTickets.forEach((tkt, index) => {
-                const row = document.createElement('div');
-                row.className = "flex justify-between items-center py-1 border-b border-slate-900 last:border-0";
-                row.innerHTML = `<span class="text-slate-500 text-xs">ຊຸດທີ #${index + 1}</span> <span class="text-amber-400 font-bold tracking-widest">${tkt}</span>`;
-                container.appendChild(row);
-            });
-
-            document.getElementById('ticket-count').innerText = `${wheelTickets.length} ຊຸດ`;
-            document.getElementById('output-screen').classList.remove('hidden');
-        });
-    </script>
+// ─── TOAST ────────────────────────────────────────────────────
+function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    document.getElementById('toast-icon').innerHTML = type === 'success'
+        ? '<i class="fa-solid fa-circle-check text-emerald-400"></i>'
+        : '<i class="fa-solid fa-circle-exclamation text-rose-400"></i>';
+    document.getElementById('toast-msg').textContent = msg;
+    t.classList.remove('translate-y-20','opacity-0');
+    t.classList.add('translate-y-0','opacity-100');
+    setTimeout(() => { t.classList.remove('translate-y-0','opacity-100'); t.classList.add('translate-y-20','opacity-0'); }, 3000);
+}
+</script>
 </body>
 </html>
