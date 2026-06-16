@@ -3,278 +3,319 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lao 2D Engine</title>
+    <title>Mandel-Selbee · Lao Lottery Engine</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background: #080c14; }
-        .mono { font-family: 'IBM Plex Mono', monospace; }
-
-        .tab-active   { background: linear-gradient(135deg,#f59e0b,#ef4444); color:#0f172a; font-weight:700; }
-        .tab-inactive { color:#64748b; }
-
+        body { font-family:'Inter',sans-serif; background:#06090f; }
+        .mono { font-family:'IBM Plex Mono',monospace; }
+        .tab-active   { background:linear-gradient(135deg,#f59e0b,#ef4444); color:#0f172a; font-weight:700; }
+        .tab-inactive { color:#475569; }
         .bar { height:5px; border-radius:3px; background:linear-gradient(90deg,#f59e0b,#ef4444); transition:width .5s; }
-
-        /* 2D grid cell heat */
-        .c0{background:#0f172a;color:#334155}
-        .c1{background:#172554;color:#93c5fd}
-        .c2{background:#1d4ed8;color:#dbeafe}
-        .c3{background:#b45309;color:#fef3c7}
-        .c4{background:#dc2626;color:#fff;font-weight:700}
-
-        .ticket-hot { border-left: 3px solid #f59e0b; }
-        .ticket-due { border-left: 3px solid #f87171; }
-        .ticket-pair{ border-left: 3px solid #34d399; }
-
+        /* digit heatmap */
+        .h0{background:#0f172a;color:#334155} .h1{background:#172554;color:#93c5fd}
+        .h2{background:#1d4ed8;color:#dbeafe} .h3{background:#b45309;color:#fef3c7}
+        .h4{background:#dc2626;color:#fff;font-weight:700}
+        /* 2D grid */
+        .g0{background:#0f172a;color:#1e293b} .g1{background:#172554;color:#60a5fa}
+        .g2{background:#1e40af;color:#bfdbfe} .g3{background:#b45309;color:#fef3c7}
+        .g4{background:#dc2626;color:#fff;font-weight:700}
+        .pill{font-family:'IBM Plex Mono',monospace;font-size:9px;padding:1px 6px;border-radius:99px;}
+        .glow{box-shadow:0 0 20px rgba(245,158,11,.18);}
+        .ticket-odd{background:rgba(255,255,255,.02);}
         ::-webkit-scrollbar{width:3px}
-        ::-webkit-scrollbar-track{background:#0f172a}
+        ::-webkit-scrollbar-track{background:#06090f}
         ::-webkit-scrollbar-thumb{background:#1e293b;border-radius:2px}
-
-        .glow { box-shadow: 0 0 20px rgba(245,158,11,.15); }
-        .pill { font-family:'IBM Plex Mono',monospace; font-size:9px; padding:1px 6px; border-radius:99px; }
     </style>
 </head>
 <body class="text-slate-100 min-h-screen antialiased">
 <div class="max-w-md mx-auto min-h-screen flex flex-col p-4 pb-28">
 
-    <!-- HEADER -->
-    <header class="pt-2 pb-4 mb-4 border-b border-slate-800/50 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-red-500 flex items-center justify-center glow">
-                <i class="fa-solid fa-2 text-slate-950 font-black text-lg"></i>
+<!-- ══ HEADER ══════════════════════════════════════════════════ -->
+<header class="pt-2 pb-4 mb-4 border-b border-slate-800/50 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-red-500 flex items-center justify-center glow">
+            <i class="fa-solid fa-calculator text-slate-950 text-base"></i>
+        </div>
+        <div>
+            <h1 class="font-bold text-base tracking-tight">Mandel-Selbee Engine</h1>
+            <p class="text-[10px] text-amber-400 font-semibold tracking-widest uppercase">Combinatorial · 2D Smart · AI</p>
+        </div>
+    </div>
+    <div class="flex items-center gap-2">
+        <button onclick="openSettings()" class="w-8 h-8 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 hover:text-amber-400 transition">
+            <i class="fa-solid fa-gear text-xs"></i>
+        </button>
+        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-[10px] font-bold">
+            <span id="dot" class="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+            <span id="conn-txt" class="text-slate-400">ເຊື່ອມ...</span>
+        </div>
+    </div>
+</header>
+
+<!-- ══ KPI BAR ══════════════════════════════════════════════════ -->
+<div class="grid grid-cols-4 gap-2 mb-4">
+    <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-2.5 text-center">
+        <div class="text-[9px] text-slate-500 uppercase">ຂໍ້ມູນ</div>
+        <div id="kpi-draws" class="mono text-lg font-bold text-amber-400">0</div>
+        <div class="text-[9px] text-slate-600">ຄັ້ງ</div>
+    </div>
+    <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-2.5 text-center">
+        <div class="text-[9px] text-slate-500 uppercase">2D Hit</div>
+        <div id="kpi-hit" class="mono text-lg font-bold text-emerald-400">-</div>
+        <div class="text-[9px] text-slate-600">backtest</div>
+    </div>
+    <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-2.5 text-center">
+        <div class="text-[9px] text-slate-500 uppercase">Hot Pool</div>
+        <div id="kpi-hot" class="mono text-sm font-bold text-rose-400 leading-tight">-</div>
+        <div class="text-[9px] text-slate-600">7 ຕົວ</div>
+    </div>
+    <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-2.5 text-center">
+        <div class="text-[9px] text-slate-500 uppercase">Harvey Δ</div>
+        <div id="kpi-delta" class="mono text-lg font-bold text-indigo-400">-</div>
+        <div class="text-[9px] text-slate-600">delta</div>
+    </div>
+</div>
+
+<!-- ══ TABS ══════════════════════════════════════════════════════ -->
+<div class="flex gap-1 bg-slate-900/80 border border-slate-800 rounded-xl p-1 mb-5">
+    <button onclick="tab('add')"     id="tab-add"     class="flex-1 text-[10px] py-2 rounded-lg tab-active transition">➕ ບັນທຶກ</button>
+    <button onclick="tab('mandel')"  id="tab-mandel"  class="flex-1 text-[10px] py-2 rounded-lg tab-inactive transition">🎲 Mandel</button>
+    <button onclick="tab('smart2d')" id="tab-smart2d" class="flex-1 text-[10px] py-2 rounded-lg tab-inactive transition">🎯 Smart 2D</button>
+    <button onclick="tab('stats')"   id="tab-stats"   class="flex-1 text-[10px] py-2 rounded-lg tab-inactive transition">📊 Stats</button>
+    <button onclick="tab('hist')"    id="tab-hist"    class="flex-1 text-[10px] py-2 rounded-lg tab-inactive transition">📋 ປະຫວັດ</button>
+</div>
+
+<!-- ══ TAB: ADD ══════════════════════════════════════════════════ -->
+<div id="p-add" class="space-y-4">
+    <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
+        <div class="flex items-center gap-2 mb-4">
+            <i class="fa-solid fa-circle-plus text-amber-400"></i>
+            <h2 class="font-semibold text-sm">ບັນທຶກຜົນຫວຍ</h2>
+        </div>
+        <div class="space-y-3">
+            <div>
+                <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1.5">ວັນທີ</label>
+                <input type="date" id="inp-date" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition">
             </div>
             <div>
-                <h1 class="font-bold text-base tracking-tight">Lao 2D Engine</h1>
-                <p class="text-[10px] text-amber-400 font-semibold tracking-widest uppercase">Focus: ສອງຕົວທ້າຍ</p>
+                <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1.5">ເລກ 6 ຕົວ</label>
+                <input type="text" id="inp-6d" maxlength="6" pattern="\d{6}" placeholder="ຕົວຢ່າງ: 535883"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 mono text-2xl tracking-[.35em] text-amber-400 focus:outline-none focus:border-amber-500 transition">
+                <div class="mt-2 flex gap-4 text-[11px]">
+                    <span class="text-slate-500">2D: <span id="prev-2d" class="mono font-bold text-emerald-400">--</span></span>
+                    <span class="text-slate-500">3D: <span id="prev-3d" class="mono font-bold text-indigo-400">---</span></span>
+                    <span class="text-slate-500">6D: <span id="prev-6d" class="mono font-bold text-amber-400">------</span></span>
+                </div>
             </div>
-        </div>
-        <div class="flex items-center gap-2">
-            <button onclick="openSettings()" class="w-8 h-8 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 hover:text-amber-400 transition">
-                <i class="fa-solid fa-gear text-xs"></i>
+            <button onclick="submitDraw()" id="btn-submit"
+                class="w-full bg-gradient-to-r from-amber-500 to-red-500 text-slate-950 font-bold text-sm py-3 rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-cloud-arrow-up"></i> ຈັດເກັບ & ປະມວນຜົນ
             </button>
-            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-[10px] font-bold">
-                <span id="dot" class="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                <span id="conn-txt" class="text-slate-400">ເຊື່ອມ...</span>
-            </div>
-        </div>
-    </header>
-
-    <!-- KPI BAR -->
-    <div class="grid grid-cols-4 gap-2 mb-4">
-        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-2.5 text-center">
-            <div class="text-[9px] text-slate-500 uppercase tracking-wide">ຂໍ້ມູນ</div>
-            <div id="kpi-draws" class="mono text-lg font-bold text-amber-400 leading-tight">0</div>
-            <div class="text-[9px] text-slate-600">ຄັ້ງ</div>
-        </div>
-        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-2.5 text-center">
-            <div class="text-[9px] text-slate-500 uppercase tracking-wide">Hit Rate</div>
-            <div id="kpi-hit" class="mono text-lg font-bold text-emerald-400 leading-tight">-</div>
-            <div class="text-[9px] text-slate-600">2D %</div>
-        </div>
-        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-2.5 text-center">
-            <div class="text-[9px] text-slate-500 uppercase tracking-wide">Hot 2D</div>
-            <div id="kpi-hot" class="mono text-lg font-bold text-rose-400 leading-tight">--</div>
-            <div class="text-[9px] text-slate-600">ອອກເລື້ອຍ</div>
-        </div>
-        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-2.5 text-center">
-            <div class="text-[9px] text-slate-500 uppercase tracking-wide">Due 2D</div>
-            <div id="kpi-due" class="mono text-lg font-bold text-indigo-400 leading-tight">--</div>
-            <div class="text-[9px] text-slate-600">ຄ້າງດົນ</div>
         </div>
     </div>
-
-    <!-- TABS -->
-    <div class="flex gap-1 bg-slate-900/80 border border-slate-800 rounded-xl p-1 mb-5">
-        <button onclick="tab('add')"  id="tab-add"  class="tab-btn flex-1 text-[11px] py-2 rounded-lg tab-active">➕ ບັນທຶກ</button>
-        <button onclick="tab('gen')"  id="tab-gen"  class="tab-btn flex-1 text-[11px] py-2 rounded-lg tab-inactive">🎯 ສ້າງຊຸດ</button>
-        <button onclick="tab('stat')" id="tab-stat" class="tab-btn flex-1 text-[11px] py-2 rounded-lg tab-inactive">📊 ສະຖິຕິ</button>
-        <button onclick="tab('hist')" id="tab-hist" class="tab-btn flex-1 text-[11px] py-2 rounded-lg tab-inactive">📋 ປະຫວັດ</button>
-    </div>
-
-    <!-- ══════════ TAB: ADD ══════════ -->
-    <div id="p-add" class="space-y-4">
-        <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
-            <div class="flex items-center gap-2 mb-4">
-                <i class="fa-solid fa-circle-plus text-amber-400"></i>
-                <h2 class="font-semibold text-sm">ບັນທຶກຜົນຫວຍ</h2>
+    <!-- AI Panel -->
+    <div id="ai-panel" class="bg-slate-900/60 border border-indigo-500/20 rounded-2xl p-4 hidden">
+        <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-brain text-indigo-400 text-sm"></i>
+                <span class="text-xs font-bold text-indigo-300 uppercase tracking-wider">AI ວິເຄາະທັນທີ</span>
             </div>
-            <div class="space-y-3">
-                <div>
-                    <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1.5">ວັນທີ</label>
-                    <input type="date" id="inp-date" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition">
-                </div>
-                <div>
-                    <label class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1.5">ເລກ 6 ຕົວ</label>
-                    <input type="text" id="inp-6d" maxlength="6" pattern="\d{6}" placeholder="ຕົວຢ່າງ: 535883"
-                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 mono text-2xl tracking-[0.35em] text-amber-400 focus:outline-none focus:border-amber-500 transition">
-                    <div class="mt-2 flex items-center gap-2">
-                        <span class="text-[10px] text-slate-500">2D ທ້າຍ:</span>
-                        <span id="preview-2d" class="mono font-bold text-sm text-emerald-400">--</span>
-                    </div>
-                </div>
-                <button onclick="submitDraw()" id="btn-submit"
-                    class="w-full bg-gradient-to-r from-amber-500 to-red-500 text-slate-950 font-bold text-sm py-3 rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-cloud-arrow-up"></i> ບັນທຶກ
-                </button>
+            <span class="pill bg-indigo-900/40 text-indigo-400">Gemini 2.5</span>
+        </div>
+        <div id="ai-load" class="flex items-center gap-2 py-2">
+            <i class="fa-solid fa-circle-notch text-amber-400 animate-spin text-sm"></i>
+            <span class="text-xs text-slate-400 italic">ກຳລັງວິເຄາະ...</span>
+        </div>
+        <div id="ai-body" class="text-xs text-slate-300 leading-relaxed hidden"></div>
+    </div>
+</div>
+
+<!-- ══ TAB: MANDEL-SELBEE ════════════════════════════════════════ -->
+<div id="p-mandel" class="space-y-4 hidden">
+    <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
+        <div class="flex items-center gap-2 mb-1">
+            <i class="fa-solid fa-layer-group text-amber-400"></i>
+            <h2 class="font-semibold text-sm">Mandel-Selbee Combinatorial</h2>
+        </div>
+        <p class="text-[11px] text-slate-500 mb-4 leading-relaxed">ສ້າງຊຸດຕາໜ່າງ Harvey Coverage ຈາກ Hot Pool 7 ຕົວ</p>
+
+        <!-- Hot pool display -->
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 mb-4">
+            <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-2 font-bold">Hot Pool (7 ຕົວ) — ຈັດລຽງຕາມຄວາມຖີ່</div>
+            <div id="mandel-pool" class="flex gap-2 flex-wrap"></div>
+        </div>
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 mb-4 flex justify-between items-center">
+            <div>
+                <div class="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Harvey Cover Δ</div>
+                <div id="mandel-delta" class="mono text-lg font-bold text-indigo-400">-</div>
+            </div>
+            <div>
+                <div class="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Database Seed</div>
+                <div id="mandel-seed" class="mono text-sm font-bold text-slate-400">-</div>
             </div>
         </div>
 
-        <!-- AI Panel -->
-        <div id="ai-panel" class="bg-slate-900/60 border border-indigo-500/20 rounded-2xl p-4 hidden">
-            <div class="flex items-center justify-between mb-3">
-                <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-brain text-indigo-400 text-sm"></i>
-                    <span class="text-xs font-bold text-indigo-300 uppercase tracking-wider">AI ວິເຄາະ 2D</span>
-                </div>
-                <span class="pill bg-indigo-900/40 text-indigo-400">Gemini</span>
+        <!-- Mode selector -->
+        <div class="grid grid-cols-3 gap-1.5 bg-slate-950 rounded-xl p-1 border border-slate-800 mb-4">
+            <button onclick="setMandelMode(2)" id="mm-2" class="py-2 rounded-lg text-[11px] font-bold tab-active">2D (12 ຊຸດ)</button>
+            <button onclick="setMandelMode(3)" id="mm-3" class="py-2 rounded-lg text-[11px] font-bold tab-inactive">3D (10 ຊຸດ)</button>
+            <button onclick="setMandelMode(6)" id="mm-6" class="py-2 rounded-lg text-[11px] font-bold tab-inactive">6D (8 ຊຸດ)</button>
+        </div>
+
+        <button onclick="generateMandel()"
+            class="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold text-sm py-3.5 rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2 mb-4">
+            <i class="fa-solid fa-cubes"></i> ສ້າງຊຸດ Harvey Coverage
+        </button>
+
+        <div id="mandel-out" class="hidden">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">ຜົນ Harvey Coverage</span>
+                <span id="mandel-cnt" class="pill bg-amber-900/30 text-amber-400">0 ຊຸດ</span>
             </div>
-            <div id="ai-load" class="flex items-center gap-2 py-2">
-                <i class="fa-solid fa-circle-notch text-amber-400 animate-spin text-sm"></i>
-                <span class="text-xs text-slate-400 italic">ກຳລັງວິເຄາະ...</span>
-            </div>
-            <div id="ai-body" class="text-xs text-slate-300 leading-relaxed hidden"></div>
+            <div id="mandel-tickets" class="bg-slate-950 border border-slate-800 rounded-xl p-3 mono text-sm space-y-1.5 max-h-56 overflow-y-auto"></div>
+            <p class="text-[10px] text-emerald-400/80 italic mt-2"><i class="fa-solid fa-lock text-xs"></i> ຜົນລັອກຕາມ DB seed ລ່າສຸດ — ຈະປ່ຽນເມື່ອມີຂໍ້ມູນໃໝ່</p>
+            <p class="text-[10px] text-slate-500 italic mt-1"><i class="fa-solid fa-circle-info text-xs"></i> ລະບົບຂະຫຍາຍ Hot Pool ເປັນ 7 ຕົວ ເພື່ອຫຼຸດ miss rate</p>
         </div>
     </div>
+</div>
 
-    <!-- ══════════ TAB: GENERATE ══════════ -->
-    <div id="p-gen" class="space-y-4 hidden">
-        <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
-            <div class="flex items-center gap-2 mb-4">
-                <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i>
-                <h2 class="font-semibold text-sm">Smart 2D Generator</h2>
+<!-- ══ TAB: SMART 2D ════════════════════════════════════════════ -->
+<div id="p-smart2d" class="space-y-4 hidden">
+    <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
+        <div class="flex items-center gap-2 mb-1">
+            <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i>
+            <h2 class="font-semibold text-sm">Smart 2D Generator</h2>
+        </div>
+        <p class="text-[11px] text-slate-500 mb-4 leading-relaxed">ໃຊ້ 3 Signal ຮ່ວມກັນ: ຄວາມຖີ່ + ຄ້າງດົນ + Streak ເພື່ອຈັດລຳດັບ 00–99</p>
+
+        <!-- Sliders -->
+        <div class="space-y-3 mb-4 bg-slate-950/60 rounded-xl p-3 border border-slate-800">
+            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">ນ້ຳໜັກ Signal (ລວມ = 100%)</p>
+            <div>
+                <div class="flex justify-between text-[11px] mb-1"><span class="text-slate-400">🔥 Frequency (Hot)</span><span id="sv-hot" class="mono text-amber-400">40%</span></div>
+                <input type="range" id="sl-hot" min="0" max="100" value="40" oninput="syncSl()" class="w-full accent-amber-400 h-1">
             </div>
-
-            <!-- Sliders -->
-            <div class="space-y-3 mb-5 bg-slate-950/60 rounded-xl p-3 border border-slate-800">
-                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2">ນ້ຳໜັກ Signal</p>
-                <div>
-                    <div class="flex justify-between text-[11px] mb-1">
-                        <span class="text-slate-400">🔥 ຄວາມຖີ່ (Frequency)</span>
-                        <span id="sv-hot" class="mono text-amber-400">40%</span>
-                    </div>
-                    <input type="range" id="sl-hot" min="0" max="100" value="40" oninput="syncSliders('hot')" class="w-full accent-amber-400 h-1">
-                </div>
-                <div>
-                    <div class="flex justify-between text-[11px] mb-1">
-                        <span class="text-slate-400">⏳ ຄ້າງດົນ (Due)</span>
-                        <span id="sv-due" class="mono text-rose-400">40%</span>
-                    </div>
-                    <input type="range" id="sl-due" min="0" max="100" value="40" oninput="syncSliders('due')" class="w-full accent-rose-400 h-1">
-                </div>
-                <div>
-                    <div class="flex justify-between text-[11px] mb-1">
-                        <span class="text-slate-400">📈 Streak (ອອກຕໍ່ເນື່ອງ)</span>
-                        <span id="sv-str" class="mono text-emerald-400">20%</span>
-                    </div>
-                    <input type="range" id="sl-str" min="0" max="100" value="20" oninput="syncSliders('str')" class="w-full accent-emerald-400 h-1">
-                </div>
-                <p id="slider-warn" class="text-[10px] text-rose-400 hidden">⚠️ ລວມຕ້ອງໄດ້ 100%</p>
+            <div>
+                <div class="flex justify-between text-[11px] mb-1"><span class="text-slate-400">⏳ Due / Gap</span><span id="sv-due" class="mono text-rose-400">40%</span></div>
+                <input type="range" id="sl-due" min="0" max="100" value="40" oninput="syncSl()" class="w-full accent-rose-400 h-1">
             </div>
-
-            <!-- Count selector -->
-            <div class="flex items-center justify-between mb-4">
-                <span class="text-xs text-slate-400">ຈຳນວນຊຸດ</span>
-                <div class="flex gap-1">
-                    <button onclick="setCount(10)" id="cnt-10" class="mono text-[11px] px-3 py-1.5 rounded-lg tab-active">10</button>
-                    <button onclick="setCount(15)" id="cnt-15" class="mono text-[11px] px-3 py-1.5 rounded-lg tab-inactive">15</button>
-                    <button onclick="setCount(20)" id="cnt-20" class="mono text-[11px] px-3 py-1.5 rounded-lg tab-inactive">20</button>
-                </div>
+            <div>
+                <div class="flex justify-between text-[11px] mb-1"><span class="text-slate-400">📈 Streak (ອອກຕໍ່ເນື່ອງ)</span><span id="sv-str" class="mono text-emerald-400">20%</span></div>
+                <input type="range" id="sl-str" min="0" max="100" value="20" oninput="syncSl()" class="w-full accent-emerald-400 h-1">
             </div>
+            <div id="sl-warn" class="text-[10px] text-rose-400 hidden">⚠️ ລວມຕ້ອງໄດ້ 100%</div>
+        </div>
 
-            <button onclick="generate2D()"
-                class="w-full bg-gradient-to-r from-amber-500 to-red-500 text-slate-950 font-bold text-sm py-3.5 rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2 mb-4">
-                <i class="fa-solid fa-dice"></i> ສ້າງ 2D ທີ່ດີທີ່ສຸດ
-            </button>
+        <!-- Count -->
+        <div class="flex items-center justify-between mb-4">
+            <span class="text-xs text-slate-400">ຈຳນວນຄູ່ 2D</span>
+            <div class="flex gap-1">
+                <button onclick="setGenCnt(10)" id="gc-10" class="mono text-[11px] px-3 py-1.5 rounded-lg tab-active">10</button>
+                <button onclick="setGenCnt(15)" id="gc-15" class="mono text-[11px] px-3 py-1.5 rounded-lg tab-inactive">15</button>
+                <button onclick="setGenCnt(20)" id="gc-20" class="mono text-[11px] px-3 py-1.5 rounded-lg tab-inactive">20</button>
+            </div>
+        </div>
 
-            <div id="gen-out" class="hidden">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">ຜົນ — ຈັດລຳດັບຕາມ Score</span>
-                    <div class="flex gap-2 text-[9px]">
-                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-amber-500 inline-block"></span>Hot</span>
-                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-rose-500 inline-block"></span>Due</span>
-                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-emerald-500 inline-block"></span>Streak</span>
-                    </div>
-                </div>
-                <div id="tickets" class="bg-slate-950 border border-slate-800 rounded-xl p-2 space-y-1 max-h-80 overflow-y-auto"></div>
-                <div class="mt-3 bg-slate-950/50 border border-slate-800 rounded-xl p-3">
-                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2">Backtest ຊຸດນີ້</p>
-                    <div id="gen-backtest" class="text-xs text-slate-400"></div>
-                </div>
+        <button onclick="generateSmart2D()"
+            class="w-full bg-gradient-to-r from-amber-500 to-red-500 text-slate-950 font-bold text-sm py-3.5 rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2 mb-4">
+            <i class="fa-solid fa-dice"></i> ສ້າງ 2D ທີ່ດີທີ່ສຸດ
+        </button>
+
+        <div id="s2d-out" class="hidden">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">ຄູ່ 2D — ຈັດລຳດັບ Score</span>
+                <span id="s2d-cnt" class="pill bg-amber-900/30 text-amber-400">0 ຄູ່</span>
+            </div>
+            <div id="s2d-tickets" class="bg-slate-950 border border-slate-800 rounded-xl p-2 space-y-1 max-h-80 overflow-y-auto"></div>
+            <div class="mt-3 bg-slate-950/60 border border-slate-800 rounded-xl p-3">
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Backtest ຊຸດນີ້</p>
+                <div id="s2d-bt" class="text-xs text-slate-400"></div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- ══════════ TAB: STATS ══════════ -->
-    <div id="p-stat" class="space-y-4 hidden">
+<!-- ══ TAB: STATS ════════════════════════════════════════════════ -->
+<div id="p-stats" class="space-y-4 hidden">
 
-        <!-- 2D Frequency Grid -->
-        <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
-            <div class="flex items-center gap-2 mb-1">
-                <i class="fa-solid fa-fire text-red-400 text-sm"></i>
-                <h2 class="font-semibold text-sm">2D Frequency Grid (00–99)</h2>
-            </div>
-            <p class="text-[10px] text-slate-500 mb-3">ສີແດງ = ອອກເລື້ອຍ, ສີຟ້າ = ໜ້ອຍ, ສີດຳ = ບໍ່ເຄີຍ</p>
-            <div id="grid-2d" class="grid grid-cols-10 gap-0.5 text-[10px] mono"></div>
-            <div class="flex items-center gap-2 mt-3 text-[9px] text-slate-500">
-                <span class="w-3 h-3 rounded c0 inline-block"></span>0x
-                <span class="w-3 h-3 rounded c1 inline-block ml-1"></span>1x
-                <span class="w-3 h-3 rounded c2 inline-block ml-1"></span>2-3x
-                <span class="w-3 h-3 rounded c3 inline-block ml-1"></span>4-5x
-                <span class="w-3 h-3 rounded c4 inline-block ml-1"></span>6x+
-            </div>
+    <!-- Digit Heatmap 0-9 -->
+    <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
+        <div class="flex items-center gap-2 mb-3">
+            <i class="fa-solid fa-fire text-red-400 text-sm"></i>
+            <h2 class="font-semibold text-sm">Digit Heatmap (0–9)</h2>
         </div>
+        <div id="digit-heat" class="grid grid-cols-5 gap-2"></div>
+    </div>
 
-        <!-- Top 10 Hot 2D -->
-        <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
-            <div class="flex items-center gap-2 mb-3">
-                <i class="fa-solid fa-ranking-star text-amber-400 text-sm"></i>
-                <h2 class="font-semibold text-sm">Top 10 — 2D ອອກເລື້ອຍ</h2>
-            </div>
-            <div id="top-hot" class="space-y-2"></div>
+    <!-- 2D Grid 00–99 -->
+    <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
+        <div class="flex items-center gap-2 mb-1">
+            <i class="fa-solid fa-grid-2 text-amber-400 text-sm"></i>
+            <h2 class="font-semibold text-sm">2D Frequency Grid (00–99)</h2>
         </div>
-
-        <!-- Top 10 Due 2D -->
-        <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
-            <div class="flex items-center gap-2 mb-3">
-                <i class="fa-solid fa-hourglass-half text-rose-400 text-sm"></i>
-                <h2 class="font-semibold text-sm">Top 10 — 2D ຄ້າງດົນ (Due)</h2>
-            </div>
-            <p class="text-[10px] text-slate-500 mb-3">ຄ້າງຫຼາຍ = ໂອກາດ "ຮອດຄິວ" ສູງ (ສົມມຸດຖານ mean reversion)</p>
-            <div id="top-due" class="space-y-2"></div>
-        </div>
-
-        <!-- Backtest detail -->
-        <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
-            <div class="flex items-center gap-2 mb-3">
-                <i class="fa-solid fa-flask text-purple-400 text-sm"></i>
-                <h2 class="font-semibold text-sm">Backtest — 2D Hit Rate</h2>
-            </div>
-            <div id="bt-detail"></div>
+        <p class="text-[10px] text-slate-500 mb-3">ສີແດງ = ອອກເລື້ອຍ. Hover/Tap ເພື່ອເບິ່ງຈຳນວນ</p>
+        <div id="grid-2d" class="grid grid-cols-10 gap-0.5 text-[9px] mono"></div>
+        <div class="flex gap-2 mt-2 text-[9px] text-slate-500 flex-wrap">
+            <span><span class="inline-block w-3 h-3 rounded g0 align-middle mr-0.5"></span>0x</span>
+            <span><span class="inline-block w-3 h-3 rounded g1 align-middle mr-0.5"></span>1x</span>
+            <span><span class="inline-block w-3 h-3 rounded g2 align-middle mr-0.5"></span>2-3x</span>
+            <span><span class="inline-block w-3 h-3 rounded g3 align-middle mr-0.5"></span>4-5x</span>
+            <span><span class="inline-block w-3 h-3 rounded g4 align-middle mr-0.5"></span>6x+</span>
         </div>
     </div>
 
-    <!-- ══════════ TAB: HISTORY ══════════ -->
-    <div id="p-hist" class="space-y-3 hidden">
-        <div class="flex items-center justify-between">
-            <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">ທັງໝົດ</span>
-            <span id="hist-cnt" class="mono text-[10px] text-slate-500">0 entries</span>
+    <!-- Gap / Due Analysis -->
+    <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
+        <div class="flex items-center gap-2 mb-1">
+            <i class="fa-solid fa-hourglass-half text-amber-400 text-sm"></i>
+            <h2 class="font-semibold text-sm">Gap Analysis — Digit ທີ່ "ຄ້າງ"</h2>
         </div>
-        <div id="hist-list"></div>
-        <div id="hist-empty" class="text-center py-12 text-slate-600 italic text-sm">
-            <i class="fa-solid fa-database text-3xl block mb-2"></i>ຍັງບໍ່ມີຂໍ້ມູນ
-        </div>
+        <p class="text-[10px] text-slate-500 mb-3">ຕົວໃດບໍ່ໄດ້ອອກດົນ = mean reversion signal</p>
+        <div id="gap-stat" class="space-y-2"></div>
     </div>
 
-</div><!-- end max-w -->
+    <!-- Top 2D Due -->
+    <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
+        <div class="flex items-center gap-2 mb-3">
+            <i class="fa-solid fa-ranking-star text-rose-400 text-sm"></i>
+            <h2 class="font-semibold text-sm">Top 10 — 2D ຄ້າງດົນ (Due)</h2>
+        </div>
+        <div id="top-due" class="space-y-2"></div>
+    </div>
+
+    <!-- Backtest -->
+    <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
+        <div class="flex items-center gap-2 mb-3">
+            <i class="fa-solid fa-flask text-purple-400 text-sm"></i>
+            <h2 class="font-semibold text-sm">Backtest — 2D Hit Rate</h2>
+        </div>
+        <div id="bt-stat"></div>
+    </div>
+</div>
+
+<!-- ══ TAB: HISTORY ══════════════════════════════════════════════ -->
+<div id="p-hist" class="space-y-3 hidden">
+    <div class="flex justify-between items-center">
+        <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">ປະຫວັດທັງໝົດ</span>
+        <span id="hist-cnt" class="mono text-[10px] text-slate-500">0 entries</span>
+    </div>
+    <div id="hist-list"></div>
+    <div id="hist-empty" class="text-center py-12 text-slate-600 italic text-sm">
+        <i class="fa-solid fa-database text-3xl block mb-2"></i>ຍັງບໍ່ມີຂໍ້ມູນ
+    </div>
+</div>
+
+</div><!-- /max-w -->
 
 <!-- SETTINGS MODAL -->
-<div id="modal-settings" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 flex items-end justify-center hidden">
+<div id="m-settings" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 flex items-end justify-center hidden">
     <div class="bg-slate-900 border border-slate-700 rounded-t-2xl w-full max-w-md p-6 pb-10">
         <h3 class="font-bold text-sm mb-1">ຕັ້ງຄ່າ Gemini API Key</h3>
-        <p class="text-[11px] text-slate-400 mb-4">ສຳລັບ AI ວິເຄາະ 2D ທັນທີຫຼັງ Add</p>
+        <p class="text-[11px] text-slate-400 mb-4">ສຳລັບ AI ວິເຄາະຜົນຫວຍທັນທີ</p>
         <input type="password" id="inp-key" placeholder="AIzaSy..."
             class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 mono text-sm text-slate-200 focus:outline-none focus:border-indigo-500 mb-4">
         <div class="flex gap-3">
@@ -285,13 +326,13 @@
 </div>
 
 <!-- DELETE MODAL -->
-<div id="modal-del" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+<div id="m-del" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 flex items-center justify-center hidden">
     <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-xs w-full mx-4 text-center">
         <i class="fa-solid fa-triangle-exclamation text-rose-500 text-2xl mb-3 block"></i>
         <h3 class="font-bold text-sm mb-4">ຢືນຢັນລຶບຂໍ້ມູນ?</h3>
         <div class="flex gap-3">
             <button onclick="closeDel()" class="flex-1 bg-slate-800 text-slate-300 text-xs font-semibold py-2.5 rounded-xl">ຍົກເລີກ</button>
-            <button id="btn-del-confirm" class="flex-1 bg-rose-600 text-white text-xs font-semibold py-2.5 rounded-xl">ລຶບ</button>
+            <button id="btn-del" class="flex-1 bg-rose-600 text-white text-xs font-semibold py-2.5 rounded-xl">ລຶບ</button>
         </div>
     </div>
 </div>
@@ -302,7 +343,9 @@
 </div>
 
 <script>
-// ── FIREBASE ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// FIREBASE
+// ═══════════════════════════════════════════════════════════════
 const firebaseConfig = {
     apiKey: "AIzaSyC0qZf7frh9BYjtb6iZnWjfMjMnhucfAhI",
     authDomain: "lao-lottery-engine.firebaseapp.com",
@@ -316,377 +359,423 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// ── STATE ─────────────────────────────────────────────────────
-let draws = [];          // sorted newest-first
-let freq2D = {};         // "XY" => count  (all-time)
-let lastSeen2D = {};     // "XY" => index in draws[] (0=latest)
-let streak2D = {};       // "XY" => how many of last-5 it appeared
-let genCount = 10;
-let delKey = null;
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+let draws = [];             // newest first
+let freqDigit = Array(10).fill(0);  // digit 0-9 frequency
+let freq2D    = {};         // "XY" => count
+let lastSeen2D = {};        // "XY" => index in draws[]
+let streak2D  = {};         // "XY" => appearances in last 5
+let hotPool7  = [1,2,3,5,7,8,9];   // Mandel-Selbee hot pool (7 digits)
+let harveyDelta = 2.50;
+let dbSeed    = 12345;
+let mandelMode = 2;
+let genCount  = 10;
+let delKey    = null;
 
-// ── CONNECTION ────────────────────────────────────────────────
+// Lao animal chart
+const animals = {
+    "01":"ກົວນາໂກ","02":"ລູກງົວ","03":"ກະທິງ","04":"ຈຳພວກຂີ້ກຽດ","05":"ແມວດຳ",
+    "06":"ໝາຂາວ","07":"ໝາດຳ","08":"ງົວເຖິກ","09":"ນາກ","10":"ແຮດ",
+    "11":"ໜູ","12":"ອູດ","13":"ມ້າລາຍ","14":"ຮິບໂປ","15":"ລະມັ່ງ",
+    "16":"ລູກມ້າ","17":"ລໍ","18":"ໝາຈອກຟ້າ","19":"ແມວນ້ຳ","20":"ຊິນຊິລ່າ",
+    "21":"ກະຮອກຂາວ","22":"ໝູປ່າ","23":"ຄົນຄົວກິນ","24":"ມ້າຂາວ","25":"ຄວາຍ",
+    "26":"ຢາມາ","27":"ວິກູນຍາ","28":"ແມວປ່າ","29":"ແມວຂາວ","30":"ວີຊັນ",
+    "31":"ເຈຍ","32":"ໝາຈອກເງິນ","33":"ແກະ","34":"ແກະເຖິກ","35":"ແມວລາຍ",
+    "36":"ກະຮອກ","37":"ໂຄອາລ່າ","38":"ເສືອພູ","39":"ກະທ້າງ","40":"ໝີດຳ",
+    "41":"ໝູ","42":"ແຂ້","43":"ຄັນຄາກ","44":"ກໍລິລ່າ","45":"ງົວຜູ້",
+    "46":"ໝາຈອກແດງ","47":"ມ້າດຳ","48":"ຊິມແປນຊີ","49":"ໄບຊັນ","50":"ແມວແອງໂກລາ",
+    "51":"ຊ່າງໄມ້","52":"ຈິ້ງໂຈ້","53":"ສິງໂຕທະເລ","54":"ງົວແມ່","55":"ຊ້າງ",
+    "56":"ໝາປ່າ","57":"ອູດສອງໜົກ","58":"ກົບ","59":"ເຕົ່າ","60":"ໝາໄມ້",
+    "61":"ແມມມອນ","62":"ມໍສ","63":"ສິງໂຕ","64":"ໄຮຢີນ້າ","65":"ພັງພອນ",
+    "66":"ຄົນຫາປາ","67":"ງູຢາຣາຣາ","68":"ມ້າລາຍດ່າງ","69":"ລາ","70":"ວິດຄາຊາ",
+    "71":"ສົມເສັດ","72":"ກະຕ່າຍປ່າ","73":"ກະທ້າງໃຫຍ່","74":"ເສືອດຳ","75":"ເສືອດາວ",
+    "76":"ມັງກອນ","77":"ຢີຣາຟ","78":"ງູເຫຼືອມ","79":"ໝາໄນ","80":"ເສືອຈາກົວ",
+    "81":"ກວາງເຣນເດຍ","82":"ເສືອໂຄ່ງ","83":"ໝາຈອກເທົາ","84":"ຈິ້ງຈົກ","85":"ໝູຜ່າ",
+    "86":"ໝີນ້ຳຕານ","87":"ຕົວອ້ານ","88":"ກະປອມ","89":"ໂຕໜູໃຫຍ່","90":"ແຂ້ເຄແມນ",
+    "91":"ຕົວນິ້ມ","92":"ກະຕ່າຍ","93":"ໝີຂາວ","94":"ແຂ້ຢາຄາເຣ","95":"ມ້າແມ່",
+    "96":"ກວາງ","97":"ມາໝອດ","98":"ໝີເທົາ","99":"ລີງ"
+};
+
+// ═══════════════════════════════════════════════════════════════
+// CONNECTION
+// ═══════════════════════════════════════════════════════════════
 db.ref(".info/connected").on("value", s => {
     const on = s.val();
-    document.getElementById('dot').className = `h-1.5 w-1.5 rounded-full ${on ? 'bg-emerald-400' : 'bg-rose-400 animate-pulse'}`;
+    document.getElementById('dot').className = `h-1.5 w-1.5 rounded-full ${on?'bg-emerald-400':'bg-rose-400 animate-pulse'}`;
     document.getElementById('conn-txt').textContent = on ? 'ເຊື່ອມແລ້ວ' : 'ອອຟລາຍ';
 });
 
-// ── INIT ──────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('inp-date').value = new Date().toISOString().split('T')[0];
     const k = localStorage.getItem('gemini_key');
     if (k) document.getElementById('inp-key').value = k;
 
-    // Live 2D preview
     document.getElementById('inp-6d').addEventListener('input', e => {
         const v = e.target.value;
-        document.getElementById('preview-2d').textContent = v.length >= 2 ? v.slice(-2) : '--';
+        document.getElementById('prev-2d').textContent = v.length >= 2 ? v.slice(-2) : '--';
+        document.getElementById('prev-3d').textContent = v.length >= 3 ? v.slice(-3) : '---';
+        document.getElementById('prev-6d').textContent = v.length === 6 ? v : '------';
     });
 });
 
-// ── REALTIME DB ───────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// REALTIME DATA
+// ═══════════════════════════════════════════════════════════════
 db.ref('lottery_history').on('value', snap => {
     const data = snap.val();
     if (data) {
-        draws = Object.keys(data).map(k => ({ id: k, ...data[k] }))
-                      .sort((a, b) => b.draw_date.localeCompare(a.draw_date));
+        draws = Object.keys(data).map(k => ({ id:k, ...data[k] }))
+                      .sort((a,b) => b.draw_date.localeCompare(a.draw_date));
     } else {
         draws = [];
     }
-    computeStats();
+    computeAll();
     renderKPIs();
     renderHistory();
+    renderMandelPool();
 });
 
-// ── COMPUTE STATS ─────────────────────────────────────────────
-function computeStats() {
+// ═══════════════════════════════════════════════════════════════
+// COMPUTE ALL STATS
+// ═══════════════════════════════════════════════════════════════
+function computeAll() {
+    freqDigit = Array(10).fill(0);
     freq2D = {}; lastSeen2D = {}; streak2D = {};
 
+    // Init all 100 pairs
+    for (let a=0;a<=9;a++) for (let b=0;b<=9;b++) {
+        const k=`${a}${b}`; freq2D[k]=0; lastSeen2D[k]=draws.length;
+    }
+
     draws.forEach((d, i) => {
+        if (!d.six_digit) return;
+        d.six_digit.split('').forEach(c => freqDigit[parseInt(c)]++);
         const p = d.two_digit;
-        if (!p) return;
-        freq2D[p] = (freq2D[p] || 0) + 1;
-        if (lastSeen2D[p] === undefined) lastSeen2D[p] = i;
+        if (p) {
+            freq2D[p]++;
+            if (lastSeen2D[p] === draws.length) lastSeen2D[p] = i; // first seen = most recent
+        }
     });
 
-    // Fill never-seen 2Ds
-    for (let a = 0; a <= 9; a++)
-        for (let b = 0; b <= 9; b++) {
-            const k = `${a}${b}`;
-            if (freq2D[k] === undefined)   freq2D[k] = 0;
-            if (lastSeen2D[k] === undefined) lastSeen2D[k] = draws.length; // big = very due
-        }
+    // Streak: count in last 5
+    const r5 = draws.slice(0,5).map(d=>d.two_digit);
+    for (let a=0;a<=9;a++) for (let b=0;b<=9;b++) {
+        const k=`${a}${b}`; streak2D[k] = r5.filter(x=>x===k).length;
+    }
 
-    // Streak: appeared in last 5 draws
-    const recent5 = draws.slice(0, 5).map(d => d.two_digit);
-    for (let a = 0; a <= 9; a++)
-        for (let b = 0; b <= 9; b++) {
-            const k = `${a}${b}`;
-            streak2D[k] = recent5.filter(x => x === k).length;
-        }
+    // ── MANDEL-SELBEE: Hot Pool 7 digits ──
+    const sorted = freqDigit.map((c,i)=>({d:i,c})).sort((a,b)=>b.c-a.c);
+    hotPool7 = sorted.slice(0,7).map(x=>x.d);
+
+    // Harvey Delta from latest draw
+    if (draws.length > 0 && draws[0].six_digit) {
+        const arr = draws[0].six_digit.split('').map(Number);
+        let s=0; for(let i=0;i<arr.length-1;i++) s+=Math.abs(arr[i+1]-arr[i]);
+        harveyDelta = (s/(arr.length-1)).toFixed(2);
+    }
+
+    // DB Seed (deterministic from latest state)
+    if (draws.length > 0) {
+        const seedStr = (draws[0].draw_date||'') + '_' + (draws[0].six_digit||'') + '_' + draws.length;
+        let h=0; for(let i=0;i<seedStr.length;i++){h=(h<<5)-h+seedStr.charCodeAt(i);h|=0;}
+        dbSeed = Math.abs(h);
+    }
 }
 
-// ── KPIs ──────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// KPIs
+// ═══════════════════════════════════════════════════════════════
 function renderKPIs() {
     document.getElementById('kpi-draws').textContent = draws.length;
-
-    // hot 2D
-    const hot = Object.entries(freq2D).sort((a,b) => b[1]-a[1])[0];
-    document.getElementById('kpi-hot').textContent = hot ? hot[0] : '--';
-
-    // most due 2D (appeared before in history, not never-seen, highest lastSeen index)
-    const seen = Object.entries(lastSeen2D).filter(([k]) => freq2D[k] > 0).sort((a,b) => b[1]-a[1])[0];
-    document.getElementById('kpi-due').textContent = seen ? seen[0] : '--';
-
-    // backtest hit rate
-    const hr = backtestHitRate(10);
-    document.getElementById('kpi-hit').textContent = hr >= 0 ? hr + '%' : '-';
+    document.getElementById('kpi-hot').textContent = hotPool7.slice(0,4).join(',')+'..';
+    document.getElementById('kpi-delta').textContent = harveyDelta;
+    const hr = backtestHR(10);
+    document.getElementById('kpi-hit').textContent = hr >= 0 ? hr+'%' : '-';
 }
 
-// ── SCORE A 2D ────────────────────────────────────────────────
-function score2D(pair, wHot, wDue, wStr) {
-    const maxFreq = Math.max(...Object.values(freq2D), 1);
-    const maxGap  = Math.max(...Object.values(lastSeen2D), 1);
-    const maxStr  = 5;
-
-    const hotS = (freq2D[pair]    || 0) / maxFreq  * wHot;
-    const dueS = (lastSeen2D[pair]|| 0) / maxGap   * wDue;
-    const strS = (streak2D[pair]  || 0) / maxStr   * wStr;
-    return hotS + dueS + strS;
+// ═══════════════════════════════════════════════════════════════
+// ── MANDEL-SELBEE ENGINE ────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+function renderMandelPool() {
+    const c = document.getElementById('mandel-pool');
+    if (!c) return;
+    c.innerHTML = '';
+    hotPool7.forEach((d,i) => {
+        const rank = i+1;
+        const cls = rank<=2 ? 'bg-red-700 text-white' : rank<=4 ? 'bg-amber-700 text-white' : 'bg-slate-700 text-slate-200';
+        c.innerHTML += `<span class="mono font-bold text-lg px-3 py-1 rounded-lg ${cls}">${d}</span>`;
+    });
+    document.getElementById('mandel-delta').textContent = harveyDelta;
+    document.getElementById('mandel-seed').textContent = '#' + (dbSeed % 99999);
 }
 
-// ── GENERATE 2D ───────────────────────────────────────────────
-function generate2D() {
-    const wHot = parseInt(document.getElementById('sl-hot').value);
-    const wDue = parseInt(document.getElementById('sl-due').value);
-    const wStr = parseInt(document.getElementById('sl-str').value);
-    const total = wHot + wDue + wStr;
+function setMandelMode(m) {
+    mandelMode = m;
+    [2,3,6].forEach(x => {
+        const b = document.getElementById('mm-'+x);
+        b.classList.toggle('tab-active', x===m);
+        b.classList.toggle('tab-inactive', x!==m);
+    });
+}
 
-    if (Math.abs(total - 100) > 5) {
-        document.getElementById('slider-warn').classList.remove('hidden');
-        return;
+function generateMandel() {
+    let pool = [...hotPool7];
+    // Ensure exactly 7 unique digits using seeded fill
+    let s = dbSeed + mandelMode;
+    function rng() { let x=Math.sin(s++)*10000; return x-Math.floor(x); }
+    function shuffle(arr) {
+        for(let i=arr.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
     }
-    document.getElementById('slider-warn').classList.add('hidden');
+    while(pool.length < 7){ let v=Math.floor(rng()*10); if(!pool.includes(v)) pool.push(v); }
+    pool = pool.slice(0,7);
 
-    // Score all 100 pairs
-    const all = [];
-    for (let a = 0; a <= 9; a++)
-        for (let b = 0; b <= 9; b++) {
-            const k = `${a}${b}`;
-            all.push({ pair: k, s: score2D(k, wHot, wDue, wStr) });
+    let tickets = [];
+
+    if (mandelMode === 2) {
+        // Harvey 2D: all ordered pairs from 7-digit pool
+        for(let x=0;x<pool.length;x++) for(let y=0;y<pool.length;y++) {
+            if(x!==y) tickets.push(`${pool[x]}${pool[y]}`);
         }
-    all.sort((a, b) => b.s - a.s);
+        shuffle(tickets);
+        tickets = [...new Set(tickets)].slice(0,12);
 
-    const top = all.slice(0, genCount);
-    const maxS = top[0].s || 1;
+    } else if (mandelMode === 3) {
+        // Harvey 3D: balanced triples
+        for(let i=0;i<pool.length;i++){
+            const a=pool[i], b=pool[(i+1)%pool.length], c=pool[(i+2)%pool.length], d=pool[(i+4)%pool.length];
+            tickets.push(`${a}${b}${c}`);
+            tickets.push(`${b}${c}${d}`);
+        }
+        shuffle(tickets);
+        tickets = [...new Set(tickets)].slice(0,10);
 
-    const container = document.getElementById('tickets');
-    container.innerHTML = '';
+    } else {
+        // Harvey 6D: system matrices
+        for(let k=0;k<8;k++){
+            let t=[];
+            for(let pos=0;pos<6;pos++){
+                const off=Math.floor(rng()*pool.length);
+                t.push(pool[(k+pos+off)%pool.length]);
+            }
+            tickets.push(t.join(''));
+        }
+        tickets = [...new Set(tickets)].slice(0,8);
+    }
 
-    top.forEach((item, i) => {
-        const pct = Math.round((item.s / maxS) * 100);
-        const isHot = freq2D[item.pair] >= 3;
-        const isDue = lastSeen2D[item.pair] >= Math.floor(draws.length * 0.4);
-        const isStr = streak2D[item.pair] > 0;
-        const borderClass = isHot ? 'ticket-hot' : isDue ? 'ticket-due' : isStr ? 'ticket-pair' : '';
-
+    const cont = document.getElementById('mandel-tickets');
+    cont.innerHTML = '';
+    tickets.forEach((t,i) => {
         const row = document.createElement('div');
-        row.className = `flex items-center justify-between px-3 py-2 rounded-lg ${borderClass} ${i%2===0?'bg-slate-950/60':''}`;
-        row.innerHTML = `
-            <div class="flex items-center gap-3">
-                <span class="text-[10px] text-slate-600 mono w-5">#${i+1}</span>
-                <span class="mono font-bold text-xl tracking-widest text-amber-400">${item.pair}</span>
-                <div class="flex gap-1">
-                    ${isHot ? '<span class="pill bg-amber-900/40 text-amber-400">Hot</span>' : ''}
-                    ${isDue ? '<span class="pill bg-rose-900/40 text-rose-400">Due</span>' : ''}
-                    ${isStr ? '<span class="pill bg-emerald-900/40 text-emerald-400">Streak</span>' : ''}
-                </div>
-            </div>
-            <div class="flex items-center gap-2">
-                <div class="w-14 bg-slate-800 rounded-full h-1"><div class="bar" style="width:${pct}%"></div></div>
-                <span class="pill bg-slate-800 text-slate-400">${pct}%</span>
-            </div>`;
-        container.appendChild(row);
+        row.className = `flex justify-between items-center py-1 border-b border-slate-900 last:border-0 ${i%2===0?'ticket-odd':''}`;
+        row.innerHTML = `<span class="text-slate-500 text-xs">ຊຸດທີ #${i+1}</span><span class="text-amber-400 font-bold tracking-widest">${t}</span>`;
+        cont.appendChild(row);
     });
 
-    // Mini backtest for this set
-    const topPairs = new Set(top.map(x => x.pair));
-    const bt = backtestSet(topPairs);
-    document.getElementById('gen-backtest').innerHTML = draws.length < 4
-        ? '<span class="text-slate-600 italic">ຕ້ອງການຂໍ້ມູນ ≥ 4 ຄັ້ງ</span>'
-        : `ຊຸດນີ້ (${genCount} ຄູ່) ຈະ <strong class="text-emerald-400">${bt.hits}/${bt.tested}</strong> = <strong class="text-emerald-400">${bt.rate}%</strong> ໃນຂໍ້ມູນທີ່ຜ່ານມາ`;
-
-    document.getElementById('gen-out').classList.remove('hidden');
+    document.getElementById('mandel-cnt').textContent = tickets.length + ' ຊຸດ';
+    document.getElementById('mandel-out').classList.remove('hidden');
 }
 
-// ── BACKTEST HELPERS ──────────────────────────────────────────
-function backtestHitRate(topN) {
-    if (draws.length < 4) return -1;
-    let hits = 0, tested = 0;
-    const limit = Math.min(draws.length - 1, 30);
-    for (let i = 1; i <= limit; i++) {
-        const training = draws.slice(i);
-        const tFreq = {};
-        training.forEach(d => { if(d.two_digit) tFreq[d.two_digit] = (tFreq[d.two_digit]||0)+1; });
-        const hotSet = new Set(Object.entries(tFreq).sort((a,b)=>b[1]-a[1]).slice(0,topN).map(x=>x[0]));
-        if (draws[i-1].two_digit && hotSet.has(draws[i-1].two_digit)) hits++;
-        tested++;
-    }
-    return tested > 0 ? Math.round((hits/tested)*100) : -1;
+// ═══════════════════════════════════════════════════════════════
+// ── SMART 2D ENGINE ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+function syncSl() {
+    document.getElementById('sv-hot').textContent = document.getElementById('sl-hot').value+'%';
+    document.getElementById('sv-due').textContent = document.getElementById('sl-due').value+'%';
+    document.getElementById('sv-str').textContent = document.getElementById('sl-str').value+'%';
+    const total = +document.getElementById('sl-hot').value + +document.getElementById('sl-due').value + +document.getElementById('sl-str').value;
+    document.getElementById('sl-warn').classList.toggle('hidden', Math.abs(total-100)<=5);
 }
 
-function backtestSet(pairSet) {
-    if (draws.length < 4) return { hits:0, tested:0, rate:0 };
-    let hits = 0, tested = 0;
-    draws.forEach(d => {
-        if (d.two_digit) {
-            if (pairSet.has(d.two_digit)) hits++;
-            tested++;
-        }
-    });
-    return { hits, tested, rate: tested > 0 ? Math.round((hits/tested)*100) : 0 };
-}
-
-// ── RENDER STATS ──────────────────────────────────────────────
-function renderStatTab() {
-    // 2D grid
-    const grid = document.getElementById('grid-2d');
-    grid.innerHTML = '';
-    const maxF = Math.max(...Object.values(freq2D), 1);
-    for (let a = 0; a <= 9; a++)
-        for (let b = 0; b <= 9; b++) {
-            const k = `${a}${b}`;
-            const f = freq2D[k] || 0;
-            const ratio = f / maxF;
-            let cls = 'c0';
-            if (ratio > 0.75) cls = 'c4';
-            else if (ratio > 0.45) cls = 'c3';
-            else if (ratio > 0.2) cls = 'c2';
-            else if (ratio > 0) cls = 'c1';
-            const cell = document.createElement('div');
-            cell.className = `${cls} rounded text-center py-1 cursor-default`;
-            cell.title = `${k}: ${f}x`;
-            cell.textContent = k;
-            grid.appendChild(cell);
-        }
-
-    // Top 10 Hot
-    const hot10 = Object.entries(freq2D).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).slice(0,10);
-    const maxHot = hot10[0]?.[1] || 1;
-    document.getElementById('top-hot').innerHTML = hot10.map(([k,v]) =>
-        `<div class="flex items-center gap-3 py-1">
-            <span class="mono font-bold text-base text-amber-400 w-8">${k}</span>
-            <div class="flex-1"><div class="bg-slate-800 rounded-full h-1.5"><div class="bar" style="width:${Math.round(v/maxHot*100)}%"></div></div></div>
-            <span class="mono text-[11px] text-slate-400">${v}x</span>
-        </div>`).join('') || '<p class="text-slate-600 text-xs italic">ຕ້ອງການຂໍ້ມູນ</p>';
-
-    // Top 10 Due (only pairs that have appeared at least once)
-    const due10 = Object.entries(lastSeen2D).filter(([k])=>freq2D[k]>0).sort((a,b)=>b[1]-a[1]).slice(0,10);
-    const maxDue = due10[0]?.[1] || 1;
-    document.getElementById('top-due').innerHTML = due10.map(([k,v]) =>
-        `<div class="flex items-center gap-3 py-1">
-            <span class="mono font-bold text-base text-rose-400 w-8">${k}</span>
-            <div class="flex-1"><div class="bg-slate-800 rounded-full h-1.5"><div class="bar" style="width:${Math.round(v/maxDue*100)}%"></div></div></div>
-            <span class="mono text-[11px] text-slate-400">${v} ຄັ້ງກ່ອນ</span>
-        </div>`).join('') || '<p class="text-slate-600 text-xs italic">ຕ້ອງການຂໍ້ມູນ</p>';
-
-    // Backtest detail
-    const rates = [5,10,15,20].map(n => ({ n, r: backtestHitRate(n) }));
-    document.getElementById('bt-detail').innerHTML = draws.length < 4
-        ? '<p class="text-slate-600 text-xs italic">ຕ້ອງການຂໍ້ມູນ ≥ 4 ຄັ້ງ</p>'
-        : `<div class="grid grid-cols-2 gap-2">
-            ${rates.map(({n,r}) => `
-            <div class="bg-slate-950/60 border border-slate-800 rounded-xl px-3 py-2.5 text-center">
-                <div class="text-[10px] text-slate-500 mb-0.5">Top ${n} ຄູ່</div>
-                <div class="mono text-xl font-bold ${r>=50?'text-emerald-400':r>=30?'text-amber-400':'text-rose-400'}">${r}%</div>
-            </div>`).join('')}
-          </div>
-          <p class="text-[10px] text-slate-600 italic mt-2 leading-relaxed">ທົດສອບ ${Math.min(draws.length-1,30)} ຄັ້ງຫຼ້າສຸດ. Top 10 ຄູ່ = ລາຍການ generate ຂ້ອງເທົ່ານັ້ນ.</p>`;
-}
-
-// ── TABS ──────────────────────────────────────────────────────
-const TABS = ['add','gen','stat','hist'];
-function tab(t) {
-    TABS.forEach(p => {
-        document.getElementById('p-'+p).classList.toggle('hidden', p!==t);
-        const b = document.getElementById('tab-'+p);
-        b.classList.toggle('tab-active', p===t);
-        b.classList.toggle('tab-inactive', p!==t);
-    });
-    if (t==='stat') renderStatTab();
-}
-
-// ── COUNT SELECTOR ────────────────────────────────────────────
-function setCount(n) {
+function setGenCnt(n) {
     genCount = n;
     [10,15,20].forEach(x => {
-        const b = document.getElementById('cnt-'+x);
-        b.classList.toggle('tab-active', x===n);
-        b.classList.toggle('tab-inactive', x!==n);
+        document.getElementById('gc-'+x).classList.toggle('tab-active', x===n);
+        document.getElementById('gc-'+x).classList.toggle('tab-inactive', x!==n);
     });
 }
 
-// ── SLIDER SYNC (keep near 100%) ──────────────────────────────
-function syncSliders(changed) {
-    document.getElementById('sv-hot').textContent = document.getElementById('sl-hot').value + '%';
-    document.getElementById('sv-due').textContent = document.getElementById('sl-due').value + '%';
-    document.getElementById('sv-str').textContent = document.getElementById('sl-str').value + '%';
-    const total = +document.getElementById('sl-hot').value + +document.getElementById('sl-due').value + +document.getElementById('sl-str').value;
-    document.getElementById('slider-warn').classList.toggle('hidden', Math.abs(total-100) <= 5);
+function score2D(pair, wH, wD, wS) {
+    const mF = Math.max(...Object.values(freq2D),1);
+    const mG = Math.max(...Object.values(lastSeen2D),1);
+    return (freq2D[pair]||0)/mF*wH + (lastSeen2D[pair]||0)/mG*wD + (streak2D[pair]||0)/5*wS;
 }
 
-// ── SUBMIT DRAW ───────────────────────────────────────────────
-function submitDraw() {
-    const date = document.getElementById('inp-date').value;
-    const raw  = document.getElementById('inp-6d').value.trim();
-    if (!date || raw.length !== 6 || isNaN(raw)) { toast('ກະລຸນາໃສ່ຕົວເລກ 6 ຕົວ','err'); return; }
+function generateSmart2D() {
+    const wH = +document.getElementById('sl-hot').value;
+    const wD = +document.getElementById('sl-due').value;
+    const wS = +document.getElementById('sl-str').value;
+    if (Math.abs(wH+wD+wS-100)>5) { document.getElementById('sl-warn').classList.remove('hidden'); return; }
+    document.getElementById('sl-warn').classList.add('hidden');
 
-    const btn = document.getElementById('btn-submit');
-    btn.disabled = true;
-    const key = date.replace(/-/g,'_') + '_draw';
+    const all = [];
+    for(let a=0;a<=9;a++) for(let b=0;b<=9;b++) {
+        const k=`${a}${b}`; all.push({pair:k, s:score2D(k,wH,wD,wS)});
+    }
+    all.sort((a,b)=>b.s-a.s);
+    const top = all.slice(0,genCount);
+    const maxS = top[0]?.s||1;
 
-    db.ref('lottery_history/'+key).set({
-        draw_date: date,
-        six_digit: raw,
-        three_digit: raw.substring(3,6),
-        two_digit: raw.substring(4,6),
-        digits_array: raw.split('').map(Number)
-    }).then(() => {
-        document.getElementById('inp-6d').value = '';
-        document.getElementById('preview-2d').textContent = '--';
-        btn.disabled = false;
-        toast('ບັນທຶກສຳເລັດ! 2D = ' + raw.substring(4,6), 'ok');
-        aiAnalyze(date, raw);
+    const cont = document.getElementById('s2d-tickets');
+    cont.innerHTML='';
+    top.forEach((item,i) => {
+        const pct = Math.round((item.s/maxS)*100);
+        const isHot = freq2D[item.pair]>=3;
+        const isDue = lastSeen2D[item.pair] >= Math.floor(draws.length*0.4);
+        const isStr = streak2D[item.pair]>0;
+        const animal = animals[item.pair] || '';
+        const row = document.createElement('div');
+        row.className=`flex items-center justify-between px-3 py-2 rounded-lg ${i%2===0?'bg-slate-950/50':''}`;
+        row.innerHTML=`
+            <div class="flex items-center gap-2">
+                <span class="text-[10px] text-slate-600 mono w-5">#${i+1}</span>
+                <span class="mono font-bold text-xl text-amber-400">${item.pair}</span>
+                <span class="text-[10px] text-slate-500 hidden sm:block">${animal}</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                ${isHot?'<span class="pill bg-amber-900/40 text-amber-400">Hot</span>':''}
+                ${isDue?'<span class="pill bg-rose-900/40 text-rose-400">Due</span>':''}
+                ${isStr?'<span class="pill bg-emerald-900/40 text-emerald-400">Streak</span>':''}
+                <div class="w-12 bg-slate-800 rounded-full h-1 ml-1"><div class="bar" style="width:${pct}%"></div></div>
+                <span class="pill bg-slate-800 text-slate-400">${pct}%</span>
+            </div>`;
+        cont.appendChild(row);
     });
+
+    // Backtest this set
+    const pSet = new Set(top.map(x=>x.pair));
+    let h=0,t=0; draws.forEach(d=>{ if(d.two_digit){if(pSet.has(d.two_digit))h++;t++;} });
+    const rate = t>0?Math.round(h/t*100):0;
+    document.getElementById('s2d-bt').innerHTML = draws.length<4
+        ? '<span class="text-slate-600 italic text-xs">ຕ້ອງການ ≥ 4 ຂໍ້ມູນ</span>'
+        : `ຊຸດ ${genCount} ຄູ່ນີ້: <strong class="text-emerald-400">${h}/${t}</strong> = <strong class="text-emerald-400">${rate}%</strong> ໃນ DB`;
+
+    document.getElementById('s2d-cnt').textContent = top.length+' ຄູ່';
+    document.getElementById('s2d-out').classList.remove('hidden');
 }
 
-// ── AI ────────────────────────────────────────────────────────
-async function aiAnalyze(date, number) {
-    const panel = document.getElementById('ai-panel');
-    const load  = document.getElementById('ai-load');
-    const body  = document.getElementById('ai-body');
-    panel.classList.remove('hidden');
-    load.classList.remove('hidden');
-    body.classList.add('hidden');
+// ═══════════════════════════════════════════════════════════════
+// ── STATS TAB ───────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+function renderStats() {
+    // Digit heatmap
+    const dh = document.getElementById('digit-heat');
+    dh.innerHTML='';
+    const mx = Math.max(...freqDigit,1);
+    freqDigit.forEach((c,d)=>{
+        const r=c/mx;
+        const cls = r>0.75?'h4':r>0.5?'h3':r>0.25?'h2':r>0?'h1':'h0';
+        dh.innerHTML += `<div class="${cls} rounded-xl p-3 text-center"><div class="mono text-xl font-bold">${d}</div><div class="text-[10px] mt-0.5 opacity-70">${c}x</div></div>`;
+    });
 
-    const key = localStorage.getItem('gemini_key');
-    if (!key) {
-        load.classList.add('hidden');
-        body.innerHTML = '<p class="text-amber-400">⚙️ ຕັ້ງຄ່າ Gemini API Key ກ່ອນ</p>';
-        body.classList.remove('hidden'); return;
+    // 2D grid
+    const g2 = document.getElementById('grid-2d');
+    g2.innerHTML='';
+    const mx2 = Math.max(...Object.values(freq2D),1);
+    for(let a=0;a<=9;a++) for(let b=0;b<=9;b++){
+        const k=`${a}${b}`,f=freq2D[k]||0,r=f/mx2;
+        const cls=r>0.75?'g4':r>0.45?'g3':r>0.2?'g2':r>0?'g1':'g0';
+        const cell=document.createElement('div');
+        cell.className=`${cls} rounded text-center py-1 cursor-default`;
+        cell.title=`${k}: ${f}x (${animals[k]||''})`;
+        cell.textContent=k;
+        g2.appendChild(cell);
     }
 
-    const pair = number.substring(4,6);
-    const recent = draws.slice(0,5).map(d=>d.two_digit).join(', ');
-    const prompt = `ຜົນຫວຍລາວ: ${date}, ເລກ 6ຕົວ: ${number}, 2D ທ້າຍ: ${pair}. 
-5 ຄັ້ງລ່າສຸດ 2D: ${recent}.
-ວິເຄາະ 3 ຫົວຂໍ້ (ສັ້ນ, ພາສາລາວ):
-1) ຮູບແບບ 2D ທີ່ໃຊ້ (ຄີ/ຄູ່, ສູງ/ຕ່ຳ)
-2) ທ່ວງທ່າຈາກ 5 ຄັ້ງຜ່ານມາ
-3) ຄາດ 2D ໜ້ອຍ 3 ຄູ່ ທີ່ຄວນຈັບຕາຄັ້ງຕໍ່ໄປ`;
+    // Gap analysis (digits)
+    const gp = document.getElementById('gap-stat');
+    const maxG = Math.max(...Object.values(lastSeen2D).filter(v=>v<draws.length),1);
+    // per-digit last seen
+    const digitGap = Array(10).fill(draws.length);
+    draws.forEach((d,i)=>{ if(d.six_digit) d.six_digit.split('').forEach(c=>{ const x=parseInt(c); if(digitGap[x]===draws.length) digitGap[x]=i; }); });
+    const sortedGap = digitGap.map((g,d)=>({d,g})).sort((a,b)=>b.g-a.g);
+    const mgd = Math.max(...digitGap,1);
+    gp.innerHTML = sortedGap.map(({d,g})=>{
+        const pct=Math.round(g/mgd*100);
+        const col = pct>70?'text-rose-400':pct>35?'text-amber-400':'text-emerald-400';
+        const lbl = pct>70?'🔴 ຄ້າງດົນ':pct>35?'🟡 ຈັບຕາ':'🟢 ປົກກະຕິ';
+        return `<div class="flex items-center gap-3 py-1">
+            <span class="mono font-bold text-sm w-5 text-center ${col}">${d}</span>
+            <div class="flex-1"><div class="bg-slate-800 rounded-full h-1.5"><div class="bar" style="width:${pct}%"></div></div></div>
+            <span class="text-[10px] text-slate-500 w-16 text-right">${g===draws.length?'ບໍ່ເຄີຍ':g+' ຄັ້ງກ່ອນ'}</span>
+            <span class="text-[9px] ${col} w-16 text-right">${lbl}</span>
+        </div>`;
+    }).join('');
 
-    try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ contents:[{ parts:[{ text: prompt }] }] })
-        });
-        if (!res.ok) throw new Error();
-        const json = await res.json();
-        const txt = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        body.innerHTML = txt.split('\n').filter(Boolean).map(l=>`<p class="mb-1.5">${l}</p>`).join('');
-        load.classList.add('hidden');
-        body.classList.remove('hidden');
-    } catch {
-        load.classList.add('hidden');
-        body.innerHTML = '<p class="text-rose-400 text-[11px]">❌ ບໍ່ສາມາດເຊື່ອມ Gemini ໄດ້</p>';
-        body.classList.remove('hidden');
-    }
+    // Top 10 Due 2D
+    const due10 = Object.entries(lastSeen2D).filter(([k])=>freq2D[k]>0).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const md = due10[0]?.[1]||1;
+    document.getElementById('top-due').innerHTML = due10.length
+        ? due10.map(([k,v])=>`
+            <div class="flex items-center gap-3 py-1">
+                <span class="mono font-bold text-base text-rose-400 w-8">${k}</span>
+                <div class="flex-1"><div class="bg-slate-800 rounded-full h-1.5"><div class="bar" style="width:${Math.round(v/md*100)}%"></div></div></div>
+                <span class="mono text-[11px] text-slate-400 w-16 text-right">${v} ຄັ້ງກ່ອນ</span>
+                <span class="text-[10px] text-slate-500">${animals[k]||''}</span>
+            </div>`).join('')
+        : '<p class="text-slate-600 text-xs italic">ຕ້ອງການຂໍ້ມູນ</p>';
+
+    // Backtest table
+    const rates = [5,10,15,20].map(n=>({n,r:backtestHR(n)}));
+    document.getElementById('bt-stat').innerHTML = draws.length<4
+        ? '<p class="text-slate-600 text-xs italic">ຕ້ອງການ ≥ 4 ຂໍ້ມູນ</p>'
+        : `<div class="grid grid-cols-2 gap-2">
+            ${rates.map(({n,r})=>`
+            <div class="bg-slate-950/60 border border-slate-800 rounded-xl px-3 py-2.5 text-center">
+                <div class="text-[10px] text-slate-500 mb-0.5">Top ${n} ຄູ່</div>
+                <div class="mono text-2xl font-bold ${r>=50?'text-emerald-400':r>=30?'text-amber-400':'text-rose-400'}">${r}%</div>
+            </div>`).join('')}
+           </div>
+           <p class="text-[10px] text-slate-600 italic mt-2">ທົດສອບ ${Math.min(draws.length-1,30)} ຄັ້ງຫຼ້າສຸດ (max 30)</p>`;
 }
 
-// ── HISTORY ───────────────────────────────────────────────────
+function backtestHR(topN) {
+    if(draws.length<4) return -1;
+    let hits=0,tested=0;
+    const lim=Math.min(draws.length-1,30);
+    for(let i=1;i<=lim;i++){
+        const tr=draws.slice(i);
+        const tf={};
+        tr.forEach(d=>{if(d.two_digit)tf[d.two_digit]=(tf[d.two_digit]||0)+1;});
+        const hs=new Set(Object.entries(tf).sort((a,b)=>b[1]-a[1]).slice(0,topN).map(x=>x[0]));
+        if(draws[i-1].two_digit&&hs.has(draws[i-1].two_digit))hits++;
+        tested++;
+    }
+    return tested>0?Math.round(hits/tested*100):-1;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HISTORY
+// ═══════════════════════════════════════════════════════════════
 function renderHistory() {
-    const list  = document.getElementById('hist-list');
-    const empty = document.getElementById('hist-empty');
-    list.innerHTML = '';
-    document.getElementById('hist-cnt').textContent = draws.length + ' entries';
-
-    if (!draws.length) { empty.classList.remove('hidden'); return; }
+    const list=document.getElementById('hist-list');
+    const empty=document.getElementById('hist-empty');
+    list.innerHTML='';
+    document.getElementById('hist-cnt').textContent=draws.length+' entries';
+    if(!draws.length){empty.classList.remove('hidden');return;}
     empty.classList.add('hidden');
-
-    draws.forEach(r => {
-        const el = document.createElement('div');
-        el.className = 'flex items-center justify-between bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 mb-2 hover:border-slate-700 transition';
-        el.innerHTML = `
+    draws.forEach(r=>{
+        const full=r.six_digit||'------';
+        const el=document.createElement('div');
+        el.className='flex items-center justify-between bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 mb-2 hover:border-slate-700 transition';
+        el.innerHTML=`
             <div>
                 <div class="text-[10px] text-slate-500 font-semibold">${r.draw_date}</div>
                 <div class="mono text-base mt-0.5">
-                    <span class="text-slate-500">${(r.six_digit||'------').substring(0,4)}</span><span class="text-amber-400 font-bold text-xl">${(r.six_digit||'------').substring(4,6)}</span>
+                    <span class="text-slate-500">${full.substring(0,3)}</span>
+                    <span class="text-indigo-400">${full.substring(3,4)}</span>
+                    <span class="text-amber-400 font-bold text-xl">${full.substring(4,6)}</span>
                 </div>
             </div>
             <div class="flex items-center gap-4">
-                <div class="text-center">
-                    <div class="text-[9px] text-slate-500 uppercase">2D</div>
-                    <div class="mono font-bold text-lg text-amber-400">${r.two_digit||'--'}</div>
+                <div class="text-right">
+                    <div class="text-[9px] text-slate-500">3D: <span class="mono font-bold text-slate-300">${r.three_digit||'---'}</span></div>
+                    <div class="text-[9px] text-slate-500">2D: <span class="mono font-bold text-amber-400 text-base">${r.two_digit||'--'}</span></div>
+                    <div class="text-[9px] text-slate-600">${animals[r.two_digit||'']||''}</div>
                 </div>
                 <button onclick="openDel('${r.id}')" class="text-slate-600 hover:text-rose-500 transition p-1">
                     <i class="fa-solid fa-trash-can"></i>
@@ -696,30 +785,115 @@ function renderHistory() {
     });
 }
 
-// ── MODALS ────────────────────────────────────────────────────
-function openSettings() { document.getElementById('modal-settings').classList.remove('hidden'); }
-function closeSettings() { document.getElementById('modal-settings').classList.add('hidden'); }
-function saveSettings() {
-    const k = document.getElementById('inp-key').value.trim();
-    if (k) localStorage.setItem('gemini_key', k); else localStorage.removeItem('gemini_key');
-    closeSettings(); toast('ບັນທຶກ API Key ແລ້ວ', 'ok');
+// ═══════════════════════════════════════════════════════════════
+// SUBMIT DRAW
+// ═══════════════════════════════════════════════════════════════
+function submitDraw() {
+    const date=document.getElementById('inp-date').value;
+    const raw=document.getElementById('inp-6d').value.trim();
+    if(!date||raw.length!==6||isNaN(raw)){toast('ກະລຸນາໃສ່ຕົວເລກ 6 ຕົວ','err');return;}
+    const btn=document.getElementById('btn-submit');
+    btn.disabled=true;
+    db.ref('lottery_history/'+date.replace(/-/g,'_')+'_draw').set({
+        draw_date:date, six_digit:raw, three_digit:raw.substring(3,6),
+        two_digit:raw.substring(4,6), digits_array:raw.split('').map(Number)
+    }).then(()=>{
+        document.getElementById('inp-6d').value='';
+        document.getElementById('prev-2d').textContent='--';
+        document.getElementById('prev-3d').textContent='---';
+        document.getElementById('prev-6d').textContent='------';
+        btn.disabled=false;
+        toast('ບັນທຶກສຳເລັດ! 2D='+raw.substring(4,6)+' ('+( animals[raw.substring(4,6)]||'')+')', 'ok');
+        aiAnalyze(date, raw);
+    });
 }
-function openDel(k) { delKey = k; document.getElementById('modal-del').classList.remove('hidden'); }
-function closeDel() { document.getElementById('modal-del').classList.add('hidden'); }
-document.getElementById('btn-del-confirm').addEventListener('click', () => {
-    if (delKey) db.ref('lottery_history/'+delKey).remove().then(() => { toast('ລຶບແລ້ວ','ok'); closeDel(); });
+
+// ═══════════════════════════════════════════════════════════════
+// AI ANALYSIS
+// ═══════════════════════════════════════════════════════════════
+async function aiAnalyze(date, number) {
+    const panel=document.getElementById('ai-panel');
+    const load=document.getElementById('ai-load');
+    const body=document.getElementById('ai-body');
+    panel.classList.remove('hidden');
+    load.classList.remove('hidden');
+    body.classList.add('hidden');
+    const key=localStorage.getItem('gemini_key');
+    if(!key){
+        load.classList.add('hidden');
+        body.innerHTML='<p class="text-amber-400">⚙️ ຕັ້ງຄ່າ Gemini API Key ກ່ອນ</p>';
+        body.classList.remove('hidden'); return;
+    }
+    const pair=number.substring(4,6);
+    const animal=animals[pair]||'ບໍ່ພົບ';
+    const recent=draws.slice(0,5).map(d=>d.two_digit).join(', ');
+    const hotStr=hotPool7.join(', ');
+    const prompt=`ວິເຄາະຜົນຫວຍລາວ: ວັນທີ ${date}, ເລກ ${number}, 2D ທ້າຍ: ${pair} (${animal}).
+Hot Pool Mandel: [${hotStr}]. 5 ຄັ້ງ 2D ຜ່ານມາ: ${recent}.
+Harvey Delta: ${harveyDelta}.
+ກະລຸນາຕອບ 3 ຫົວຂໍ້ (ສັ້ນ, ພາສາລາວ):
+1) ສັດໂຊກ "${pair}" = ${animal}: ຄວາມໝາຍ
+2) ວິເຄາະ: ຄີ/ຄູ່, ສູງ/ຕ່ຳ, ຮູບແບບ 5 ຄັ້ງ
+3) ແນະນຳ 3 ຄູ່ 2D ທີ່ຄວນຈັບຕາຄັ້ງຕໍ່ໄປ`;
+    try{
+        const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
+            {method:'POST',headers:{'Content-Type':'application/json'},
+             body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
+        if(!res.ok) throw new Error();
+        const json=await res.json();
+        const txt=json.candidates?.[0]?.content?.parts?.[0]?.text||'';
+        body.innerHTML=txt.split('\n').filter(Boolean).map(l=>`<p class="mb-1.5">${l}</p>`).join('');
+        load.classList.add('hidden'); body.classList.remove('hidden');
+    }catch{
+        load.classList.add('hidden');
+        body.innerHTML='<p class="text-rose-400 text-[11px]">❌ ບໍ່ສາມາດເຊື່ອມ Gemini</p>';
+        body.classList.remove('hidden');
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════════════
+const TABS=['add','mandel','smart2d','stats','hist'];
+function tab(t){
+    TABS.forEach(p=>{
+        document.getElementById('p-'+p).classList.toggle('hidden',p!==t);
+        const b=document.getElementById('tab-'+p);
+        b.classList.toggle('tab-active',p===t);
+        b.classList.toggle('tab-inactive',p!==t);
+    });
+    if(t==='stats') renderStats();
+    if(t==='mandel') renderMandelPool();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MODALS
+// ═══════════════════════════════════════════════════════════════
+function openSettings(){document.getElementById('m-settings').classList.remove('hidden');}
+function closeSettings(){document.getElementById('m-settings').classList.add('hidden');}
+function saveSettings(){
+    const k=document.getElementById('inp-key').value.trim();
+    if(k)localStorage.setItem('gemini_key',k);else localStorage.removeItem('gemini_key');
+    closeSettings();toast('ບັນທຶກ API Key ແລ້ວ','ok');
+}
+function openDel(k){delKey=k;document.getElementById('m-del').classList.remove('hidden');}
+function closeDel(){document.getElementById('m-del').classList.add('hidden');}
+document.getElementById('btn-del').addEventListener('click',()=>{
+    if(delKey) db.ref('lottery_history/'+delKey).remove().then(()=>{toast('ລຶບແລ້ວ','ok');closeDel();});
 });
 
-// ── TOAST ─────────────────────────────────────────────────────
-function toast(msg, type='ok') {
-    const el = document.getElementById('toast');
-    document.getElementById('t-icon').innerHTML = type==='ok'
-        ? '<i class="fa-solid fa-circle-check text-emerald-400"></i>'
-        : '<i class="fa-solid fa-circle-exclamation text-rose-400"></i>';
-    document.getElementById('t-msg').textContent = msg;
+// ═══════════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════════
+function toast(msg,type='ok'){
+    const el=document.getElementById('toast');
+    document.getElementById('t-icon').innerHTML=type==='ok'
+        ?'<i class="fa-solid fa-circle-check text-emerald-400"></i>'
+        :'<i class="fa-solid fa-circle-exclamation text-rose-400"></i>';
+    document.getElementById('t-msg').textContent=msg;
     el.classList.remove('translate-y-20','opacity-0');
     el.classList.add('translate-y-0','opacity-100');
-    setTimeout(()=>{ el.classList.remove('translate-y-0','opacity-100'); el.classList.add('translate-y-20','opacity-0'); }, 3000);
+    setTimeout(()=>{el.classList.remove('translate-y-0','opacity-100');el.classList.add('translate-y-20','opacity-0');},3500);
 }
 </script>
 </body>
