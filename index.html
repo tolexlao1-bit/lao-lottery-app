@@ -584,18 +584,17 @@ function generateMandel() {
 // ── SMART 2D ENGINE ─────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════
 function syncSl() {
-    document.getElementById('sv-hot').textContent = document.getElementById('sl-hot').value+'%';
-    document.getElementById('sv-due').textContent = document.getElementById('sl-due').value+'%';
-    document.getElementById('sv-str').textContent = document.getElementById('sl-str').value+'%';
-    const total = +document.getElementById('sl-hot').value + +document.getElementById('sl-due').value + +document.getElementById('sl-str').value;
-    document.getElementById('sl-warn').classList.toggle('hidden', Math.abs(total-100)<=5);
+    document.getElementById("sv-hot").textContent = document.getElementById("sl-hot").value+"%";
+    document.getElementById("sv-due").textContent = document.getElementById("sl-due").value+"%";
+    document.getElementById("sv-str").textContent = document.getElementById("sl-str").value+"%";
+    document.getElementById("sl-warn").classList.add("hidden");
 }
 
 function setGenCnt(n) {
     genCount = n;
     [10,15,20].forEach(x => {
-        document.getElementById('gc-'+x).classList.toggle('tab-active', x===n);
-        document.getElementById('gc-'+x).classList.toggle('tab-inactive', x!==n);
+        document.getElementById("gc-"+x).classList.toggle("tab-active", x===n);
+        document.getElementById("gc-"+x).classList.toggle("tab-inactive", x!==n);
     });
 }
 
@@ -606,11 +605,13 @@ function score2D(pair, wH, wD, wS) {
 }
 
 function generateSmart2D() {
-    const wH = +document.getElementById('sl-hot').value;
-    const wD = +document.getElementById('sl-due').value;
-    const wS = +document.getElementById('sl-str').value;
-    if (Math.abs(wH+wD+wS-100)>5) { document.getElementById('sl-warn').classList.remove('hidden'); return; }
-    document.getElementById('sl-warn').classList.add('hidden');
+    let wH = +document.getElementById("sl-hot").value;
+    let wD = +document.getElementById("sl-due").value;
+    let wS = +document.getElementById("sl-str").value;
+    const total = wH + wD + wS;
+    if (total === 0) { wH=40; wD=40; wS=20; }
+    else { const f=100/total; wH=wH*f; wD=wD*f; wS=wS*f; }
+    document.getElementById("sl-warn").classList.add("hidden");
 
     const all = [];
     for(let a=0;a<=9;a++) for(let b=0;b<=9;b++) {
