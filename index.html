@@ -145,8 +145,8 @@
         <div class="space-y-3 mb-4 bg-slate-950/60 rounded-xl p-3 border border-slate-800">
             <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">ນ້ຳໜັກ Signal (ລວມ = 100%)</p>
             <div>
-                <div class="flex justify-between text-[11px] mb-1"><span class="text-slate-400">🔥 Frequency (Hot)</span><span id="sv-hot" class="mono text-amber-400">25%</span></div>
-                <input type="range" id="sl-hot" min="0" max="100" value="25" oninput="syncSl()" class="w-full accent-amber-400 h-1">
+                <div class="flex justify-between text-[11px] mb-1"><span class="text-slate-400">🔥 Frequency (Hot)</span><span id="sv-hot" class="mono text-amber-400">20%</span></div>
+                <input type="range" id="sl-hot" min="0" max="100" value="20" oninput="syncSl()" class="w-full accent-amber-400 h-1">
             </div>
             <div>
                 <div class="flex justify-between text-[11px] mb-1"><span class="text-slate-400">⏳ Due / Gap</span><span id="sv-due" class="mono text-rose-400">25%</span></div>
@@ -157,8 +157,8 @@
                 <input type="range" id="sl-str" min="0" max="100" value="25" oninput="syncSl()" class="w-full accent-emerald-400 h-1">
             </div>
             <div>
-                <div class="flex justify-between text-[11px] mb-1"><span class="text-slate-400">🔄 Cycle (ຮອດຄິວຕາມ interval)</span><span id="sv-cyc" class="mono text-purple-400">25%</span></div>
-                <input type="range" id="sl-cyc" min="0" max="100" value="25" oninput="syncSl()" class="w-full accent-purple-400 h-1">
+                <div class="flex justify-between text-[11px] mb-1"><span class="text-slate-400">🎯 Overdue Ratio (ຮອດຄິວຕາມ interval)</span><span id="sv-cyc" class="mono text-purple-400">40%</span></div>
+                <input type="range" id="sl-cyc" min="0" max="100" value="40" oninput="syncSl()" class="w-full accent-purple-400 h-1">
             </div>
             <div id="sl-warn" class="text-[10px] text-rose-400 hidden">⚠️ ລວມຕ້ອງໄດ້ 100%</div>
         </div>
@@ -172,6 +172,16 @@
                 <button onclick="setGenCnt(20)" id="gc-20" class="mono text-[11px] px-3 py-1.5 rounded-lg tab-inactive">20</button>
             </div>
         </div>
+
+        <!-- Pair lookup -->
+        <div class="flex gap-2 mb-3">
+            <input type="text" id="lookup-pair" maxlength="2" placeholder="ຊອກ 2D ເຊັ່ນ: 20"
+                class="w-24 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 mono text-base text-amber-400 focus:outline-none focus:border-amber-500 text-center tracking-widest">
+            <button onclick="lookupPair()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold py-2 rounded-xl transition">
+                🔍 ກວດ Score
+            </button>
+        </div>
+        <div id="lookup-result" class="hidden bg-slate-950/80 border border-slate-700 rounded-xl p-3 mb-3 text-xs space-y-1.5"></div>
 
         <button onclick="generateSmart2D()"
             class="w-full bg-gradient-to-r from-amber-500 to-red-500 text-slate-950 font-bold text-sm py-3.5 rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2 mb-4">
@@ -187,6 +197,26 @@
             <div class="mt-3 bg-slate-950/60 border border-slate-800 rounded-xl p-3">
                 <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Backtest ຊຸດນີ້</p>
                 <div id="s2d-bt" class="text-xs text-slate-400"></div>
+            </div>
+
+            <!-- PAIR SEARCH -->
+            <div class="mt-3 bg-slate-950/60 border border-indigo-500/20 rounded-xl p-3">
+                <p class="text-[10px] text-indigo-400 font-bold uppercase tracking-wider mb-2">🔍 ກວດ Rank ຄູ່ໃດໆ</p>
+                <div class="flex gap-2 mb-2">
+                    <input type="text" id="search-pair" maxlength="2" placeholder="02" 
+                        class="w-20 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 mono text-lg text-amber-400 focus:outline-none focus:border-indigo-500 text-center">
+                    <button onclick="searchPairRank()" 
+                        class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-2 rounded-lg transition">
+                        ກວດ Rank & Signals
+                    </button>
+                </div>
+                <div id="search-result"></div>
+            </div>
+
+            <!-- FULL RANK TABLE -->
+            <div class="mt-3 bg-slate-950/60 border border-slate-800 rounded-xl p-3">
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2">📋 Rank ທັງ 100 ຄູ່ (ສີທອງ = ຢູ່ລາຍການ)</p>
+                <div id="rank-table" class="max-h-48 overflow-y-auto space-y-0.5"></div>
             </div>
         </div>
     </div>
@@ -500,20 +530,90 @@ function setGenCnt(n) {
 }
 
 function score2D(pair, wH, wD, wS, wC) {
-    // Normalize each signal independently to 0-1 range
-    const allFreq   = Object.values(freq2D);
-    const allGap    = Object.values(lastSeen2D);
-    const allTrend  = Object.values(streak2D);
-    const allCycle  = Object.values(window.cycleScore2D || {});
-    const minF = Math.min(...allFreq),  maxF = Math.max(...allFreq,  minF+1);
-    const minG = Math.min(...allGap),   maxG = Math.max(...allGap,   minG+1);
-    const minT = Math.min(...allTrend), maxT = Math.max(...allTrend, minT+0.01);
-    const minC = Math.min(...allCycle), maxC = Math.max(...allCycle, minC+0.01);
+    // ── 4 SIGNALS, each normalized 0-1 independently ──
+    const allFreq  = Object.values(freq2D);
+    const allGap   = Object.values(lastSeen2D);
+    const allTrend = Object.values(streak2D);
+    const allOD    = Object.values(window.overdueRatio || {});
+
+    const minF=Math.min(...allFreq),  maxF=Math.max(...allFreq,  minF+1);
+    const minG=Math.min(...allGap),   maxG=Math.max(...allGap,   minG+1);
+    const minT=Math.min(...allTrend), maxT=Math.max(...allTrend, minT+0.01);
+    const minO=Math.min(...allOD),    maxO=Math.max(...allOD,    minO+0.01);
+
+    // Signal 1: Frequency (Hot) — how often it appeared overall
     const hotScore   = (freq2D[pair]    - minF) / (maxF - minF);
+
+    // Signal 2: Raw Gap (Due) — how many draws since last seen
     const dueScore   = (lastSeen2D[pair]- minG) / (maxG - minG);
+
+    // Signal 3: Recent Trend — weighted appearances in last 10
     const trendScore = ((streak2D[pair]||0) - minT) / (maxT - minT);
-    const cycleScore = ((window.cycleScore2D?.[pair]||0) - minC) / (maxC - minC);
-    return hotScore * wH + dueScore * wD + trendScore * wS + cycleScore * wC;
+
+    // Signal 4: Overdue Ratio — gap vs its own avg interval (KEY SIGNAL)
+    // A pair that appears every 40 draws but hasn't appeared in 60 = ratio 1.5 = very overdue
+    const odScore    = ((window.overdueRatio?.[pair]||0) - minO) / (maxO - minO);
+
+    return hotScore * wH + dueScore * wD + trendScore * wS + odScore * wC;
+}
+
+function lookupPair() {
+    const pair = document.getElementById('lookup-pair').value.trim().padStart(2,'0');
+    if (pair.length !== 2 || isNaN(pair)) return;
+    const res = document.getElementById('lookup-result');
+
+    const allFreq  = Object.values(freq2D);
+    const allGap   = Object.values(lastSeen2D);
+    const allTrend = Object.values(streak2D);
+    const allCycle = Object.values(window.cycleScore2D || {});
+    const minF=Math.min(...allFreq),  maxF=Math.max(...allFreq,  minF+1);
+    const minG=Math.min(...allGap),   maxG=Math.max(...allGap,   minG+1);
+    const minT=Math.min(...allTrend), maxT=Math.max(...allTrend, minT+0.01);
+    const minC=Math.min(...allCycle), maxC=Math.max(...allCycle, minC+0.01);
+
+    const hotS   = ((freq2D[pair]||0)                     - minF) / (maxF - minF);
+    const dueS   = ((lastSeen2D[pair]||0)                 - minG) / (maxG - minG);
+    const trendS = ((streak2D[pair]||0)                   - minT) / (maxT - minT);
+    const cycleS = ((window.cycleScore2D?.[pair]||0)      - minC) / (maxC - minC);
+
+    // Rank among all 100 pairs with current weights
+    let wH = +document.getElementById("sl-hot").value || 25;
+    let wD = +document.getElementById("sl-due").value || 25;
+    let wS = +document.getElementById("sl-str").value || 25;
+    let wC = +document.getElementById("sl-cyc").value || 25;
+    const t2 = wH+wD+wS+wC; if(t2>0){const f=100/t2;wH*=f;wD*=f;wS*=f;wC*=f;}
+
+    const allScores = [];
+    for(let a=0;a<=9;a++) for(let b=0;b<=9;b++){
+        const k=`${a}${b}`;
+        const hs=((freq2D[k]||0)-minF)/(maxF-minF);
+        const ds=((lastSeen2D[k]||0)-minG)/(maxG-minG);
+        const ts=((streak2D[k]||0)-minT)/(maxT-minT);
+        const cs=((window.cycleScore2D?.[k]||0)-minC)/(maxC-minC);
+        allScores.push({pair:k, s:hs*wH+ds*wD+ts*wS+cs*wC});
+    }
+    allScores.sort((a,b)=>b.s-a.s);
+    const rank = allScores.findIndex(x=>x.pair===pair) + 1;
+    const totalScore = hotS*wH + dueS*wD + trendS*wS + cycleS*wC;
+
+    const lastSeenDraws = lastSeen2D[pair] === draws.length ? 'ບໍ່ເຄີຍ' : lastSeen2D[pair] + ' ຄັ້ງກ່ອນ';
+    const cycleRaw = (window.cycleScore2D?.[pair]||0).toFixed(2);
+
+    res.innerHTML = `
+        <div class="flex justify-between"><span class="text-slate-500">2D:</span><span class="mono font-bold text-amber-400 text-base">${pair} (${animals[pair]||''})</span></div>
+        <div class="flex justify-between"><span class="text-slate-500">🏆 Rank:</span><span class="mono font-bold ${rank<=20?'text-emerald-400':rank<=50?'text-amber-400':'text-rose-400'}">#${rank} / 100</span></div>
+        <div class="border-t border-slate-800 pt-1.5 mt-1 space-y-1">
+            <div class="flex justify-between"><span class="text-slate-500">🔥 Hot score:</span><span class="mono text-amber-400">${(hotS*100).toFixed(1)}%</span></div>
+            <div class="flex justify-between"><span class="text-slate-500">⏳ Due score:</span><span class="mono text-rose-400">${(dueS*100).toFixed(1)}% (${lastSeenDraws})</span></div>
+            <div class="flex justify-between"><span class="text-slate-500">📈 Trend score:</span><span class="mono text-emerald-400">${(trendS*100).toFixed(1)}%</span></div>
+            <div class="flex justify-between"><span class="text-slate-500">🎯 Overdue Ratio score:</span><span class="mono text-purple-400">${(cycleS*100).toFixed(1)}% (ratio: ${cycleRaw}x)</span></div>
+        </div>
+        <div class="flex justify-between border-t border-slate-800 pt-1.5 mt-1">
+            <span class="text-slate-400 font-bold">Total Score:</span>
+            <span class="mono font-bold text-white">${totalScore.toFixed(2)}</span>
+        </div>
+        <p class="text-[10px] text-slate-600 italic mt-1">ຕ້ອງ Rank ≤ ${genCount} ເພື່ອຕິດລາຍການ</p>`;
+    res.classList.remove('hidden');
 }
 
 function generateSmart2D() {
@@ -522,27 +622,97 @@ function generateSmart2D() {
     let wS = +document.getElementById("sl-str").value;
     let wC = +document.getElementById("sl-cyc").value;
     const total = wH + wD + wS + wC;
-    if (total === 0) { wH=25; wD=35; wS=15; wC=25; }
+    if (total === 0) { wH=20; wD=25; wS=15; wC=40; }
     else { const f=100/total; wH=wH*f; wD=wD*f; wS=wS*f; wC=wC*f; }
     document.getElementById("sl-warn").classList.add("hidden");
 
-    const all = [];
+    // ── Pre-normalize all signals (0-1) for ranking ──────────────
+    const allFreq  = Object.values(freq2D);
+    const allGap   = Object.values(lastSeen2D);
+    const allTrend = Object.values(streak2D);
+    const allCycle = Object.values(window.cycleScore2D || {});
+    const minF=Math.min(...allFreq),  maxF=Math.max(...allFreq,  minF+1);
+    const minG=Math.min(...allGap),   maxG=Math.max(...allGap,   minG+1);
+    const minT=Math.min(...allTrend), maxT=Math.max(...allTrend, minT+0.01);
+    const minC=Math.min(...allCycle), maxC=Math.max(...allCycle, minC+0.01);
+
+    const pairData = [];
     for(let a=0;a<=9;a++) for(let b=0;b<=9;b++) {
-        const k=`${a}${b}`; all.push({pair:k, s:score2D(k,wH,wD,wS,wC)});
+        const k=`${a}${b}`;
+        const hotS   = ((freq2D[k]||0)                 - minF) / (maxF-minF);
+        const dueS   = ((lastSeen2D[k]||0)              - minG) / (maxG-minG);
+        const trendS = ((streak2D[k]||0)                - minT) / (maxT-minT);
+        const cycleS = ((window.cycleScore2D?.[k]||0)   - minC) / (maxC-minC);
+        const blended = hotS*wH + dueS*wD + trendS*wS + cycleS*wC;
+        pairData.push({ pair:k, hotS, dueS, trendS, cycleS, blended });
     }
-    all.sort((a,b)=>b.s-a.s);
-    const top = all.slice(0,genCount);
+
+    // ── 3-Group Ensemble ─────────────────────────────────────────
+    // Group A (10): top blended score
+    const byBlended = [...pairData].sort((a,b)=>b.blended-a.blended);
+    const groupA = byBlended.slice(0, 10).map(x=>x.pair);
+
+    // Group B (5): longest absent (due score) — not in A
+    const byDue = [...pairData].sort((a,b)=>b.dueS-a.dueS);
+    const groupB = byDue.filter(x=>!groupA.includes(x.pair)).slice(0, 5).map(x=>x.pair);
+
+    // Group C (5): most overdue vs own cycle — not in A or B
+    const byCycle = [...pairData].sort((a,b)=>b.cycleS-a.cycleS);
+    const takenAB = new Set([...groupA, ...groupB]);
+    const groupC = byCycle.filter(x=>!takenAB.has(x.pair)).slice(0, 5).map(x=>x.pair);
+
+    // ── Console diagnostic: where is any specific pair? ──────────
+    const debugPair = '02'; // change to check any pair
+    const dp = pairData.find(x=>x.pair===debugPair);
+    const rankBlended = byBlended.findIndex(x=>x.pair===debugPair)+1;
+    const rankDue     = byDue.findIndex(x=>x.pair===debugPair)+1;
+    const rankCycle   = byCycle.findIndex(x=>x.pair===debugPair)+1;
+    console.log(`[Engine] ${debugPair}: blended rank=${rankBlended}/100, due rank=${rankDue}/100, cycle rank=${rankCycle}/100`);
+    console.log(`[Engine] ${debugPair}: hot=${(dp.hotS*100).toFixed(1)}% due=${(dp.dueS*100).toFixed(1)}% trend=${(dp.trendS*100).toFixed(1)}% cycle=${(dp.cycleS*100).toFixed(1)}%`);
+    console.log(`[Engine] GroupA=${JSON.stringify(groupA)} GroupB=${JSON.stringify(groupB)} GroupC=${JSON.stringify(groupC)}`);
+
+    // ── Render diagnostic panel ───────────────────────────────────
+    const diagEl = document.getElementById('s2d-diag');
+    if (diagEl) {
+        const inA = groupA.includes(debugPair), inB = groupB.includes(debugPair), inC = groupC.includes(debugPair);
+        const included = inA||inB||inC;
+        diagEl.innerHTML = `
+        <div class="bg-slate-950 border ${included?'border-emerald-500/40':'border-rose-500/40'} rounded-xl p-3 text-[11px]">
+            <div class="flex justify-between items-center mb-2">
+                <span class="font-bold text-slate-300">🔬 02 Diagnostic</span>
+                <span class="font-bold ${included?'text-emerald-400':'text-rose-400'}">${included?'✅ INCLUDED':'❌ NOT INCLUDED'}</span>
+            </div>
+            <div class="grid grid-cols-2 gap-1 mono">
+                <div>🎯 Blended rank: <strong class="${rankBlended<=10?'text-emerald-400':'text-rose-400'}">#${rankBlended}</strong></div>
+                <div>⏳ Due rank: <strong class="${rankDue<=15?'text-emerald-400':'text-amber-400'}">#${rankDue}</strong></div>
+                <div>🔄 Cycle rank: <strong class="${rankCycle<=20?'text-emerald-400':'text-amber-400'}">#${rankCycle}</strong></div>
+                <div>🔥 Hot: <strong>${(dp.hotS*100).toFixed(0)}%</strong></div>
+                <div>📈 Trend: <strong>${(dp.trendS*100).toFixed(0)}%</strong></div>
+                <div>⏳ Due: <strong>${(dp.dueS*100).toFixed(0)}%</strong></div>
+            </div>
+            ${!included ? `<p class="mt-2 text-rose-300">→ ຕ້ອງ rank ≤10 (Blended), ≤15 (Due), ຫຼື ≤20 (Cycle) ຈຶ່ງຕິດ</p>` : ''}
+        </div>`;
+        diagEl.classList.remove('hidden');
+    }
+
+    // Merge
+    const topPairs = [...groupA, ...groupB, ...groupC];
+    const top = topPairs.map(pair => {
+        const d = pairData.find(x=>x.pair===pair);
+        return { pair, s: d.blended, group: groupA.includes(pair)?'A': groupB.includes(pair)?'B':'C' };
+    });
     const maxS = top[0]?.s||1;
 
     const cont = document.getElementById('s2d-tickets');
     cont.innerHTML='';
     top.forEach((item,i) => {
-        const pct = Math.round((item.s/maxS)*100);
-        const isHot = freq2D[item.pair]>=3;
-        const isDue = lastSeen2D[item.pair] >= Math.floor(draws.length*0.4);
-        const isStr = streak2D[item.pair] > 0.5;
-        const isCyc = (window.cycleScore2D?.[item.pair]||0) > 1.2; // overdue by cycle
+        const pct = Math.max(1, Math.round((item.s/maxS)*100));
         const animal = animals[item.pair] || '';
+        const groupLabel = item.group==='A'
+            ? '<span class="pill bg-slate-700 text-slate-300">🎯 Smart</span>'
+            : item.group==='B'
+            ? '<span class="pill bg-rose-900/50 text-rose-300">⏳ Due</span>'
+            : '<span class="pill bg-purple-900/50 text-purple-300">🔄 Cycle</span>';
         const row = document.createElement('div');
         row.className=`flex items-center justify-between px-3 py-2 rounded-lg ${i%2===0?'bg-slate-950/50':''}`;
         row.innerHTML=`
@@ -552,10 +722,7 @@ function generateSmart2D() {
                 <span class="text-[10px] text-slate-500 hidden sm:block">${animal}</span>
             </div>
             <div class="flex items-center gap-1.5">
-                ${isHot?'<span class="pill bg-amber-900/40 text-amber-400">Hot</span>':''}
-                ${isDue?'<span class="pill bg-rose-900/40 text-rose-400">Due</span>':''}
-                ${isStr?'<span class="pill bg-emerald-900/40 text-emerald-400">Trend</span>':''}
-                ${isCyc?'<span class="pill bg-purple-900/40 text-purple-400">Cycle</span>':''}
+                ${groupLabel}
                 <div class="w-12 bg-slate-800 rounded-full h-1 ml-1"><div class="bar" style="width:${pct}%"></div></div>
                 <span class="pill bg-slate-800 text-slate-400">${pct}%</span>
             </div>`;
@@ -571,7 +738,80 @@ function generateSmart2D() {
         : `ຊຸດ ${genCount} ຄູ່ນີ້: <strong class="text-emerald-400">${h}/${t}</strong> = <strong class="text-emerald-400">${rate}%</strong> ໃນ DB`;
 
     document.getElementById('s2d-cnt').textContent = top.length+' ຄູ່';
+
+    // ── MISSED PAIR FINDER ──────────────────────────────────────
+    // Score ALL 100 pairs and show full ranked list with search
+    window._lastAllScored = all; // store for lookup
+    renderRankTable(all, top);
+
     document.getElementById('s2d-out').classList.remove('hidden');
+}
+
+function renderRankTable(all, top) {
+    const topSet = new Set(top.map(x=>x.pair));
+    const cont = document.getElementById('rank-table');
+    if (!cont) return;
+    cont.innerHTML = '';
+    const maxS = all[0]?.s || 1;
+    all.forEach((item, i) => {
+        const inTop = topSet.has(item.pair);
+        const pct = Math.round((item.s / maxS) * 100);
+        const animal = animals[item.pair] || '';
+        const row = document.createElement('div');
+        row.className = `flex items-center gap-2 px-2 py-1 rounded text-[11px] ${inTop ? 'bg-amber-500/10 border border-amber-500/30' : ''}`;
+        row.innerHTML = `
+            <span class="mono text-slate-500 w-6 text-right">${i+1}</span>
+            <span class="mono font-bold text-base ${inTop ? 'text-amber-400' : 'text-slate-400'}">${item.pair}</span>
+            <div class="flex-1 bg-slate-800 rounded-full h-1"><div class="bar" style="width:${pct}%"></div></div>
+            <span class="mono text-[10px] ${inTop ? 'text-amber-400' : 'text-slate-500'}">${pct}%</span>
+            ${inTop ? '<span class="pill bg-amber-500/20 text-amber-400">✓</span>' : ''}
+        `;
+        cont.appendChild(row);
+    });
+}
+
+function searchPairRank() {
+    const val = document.getElementById('search-pair').value.trim().padStart(2,'0');
+    if (!val || val.length !== 2 || isNaN(val)) return;
+    const all = window._lastAllScored;
+    if (!all) { alert('Generate ກ່ອນ'); return; }
+    const idx = all.findIndex(x => x.pair === val);
+    if (idx < 0) return;
+
+    // Signal breakdown
+    const allFreq  = Object.values(freq2D);
+    const allGap   = Object.values(lastSeen2D);
+    const allTrend = Object.values(streak2D);
+    const allCycle = Object.values(window.cycleScore2D || {});
+    const minF=Math.min(...allFreq),  maxF=Math.max(...allFreq,  minF+1);
+    const minG=Math.min(...allGap),   maxG=Math.max(...allGap,   minG+1);
+    const minT=Math.min(...allTrend), maxT=Math.max(...allTrend, minT+0.01);
+    const minC=Math.min(...allCycle), maxC=Math.max(...allCycle, minC+0.01);
+
+    const hotS   = Math.round(((freq2D[val]||0)                  - minF) / (maxF-minF) * 100);
+    const dueS   = Math.round(((lastSeen2D[val]||0)              - minG) / (maxG-minG) * 100);
+    const trendS = Math.round(((streak2D[val]||0)                - minT) / (maxT-minT) * 100);
+    const cycleS = Math.round(((window.cycleScore2D?.[val]||0)   - minC) / (maxC-minC) * 100);
+
+    const needed = genCount;
+    const res = document.getElementById('search-result');
+    const color = idx < needed ? 'text-emerald-400' : 'text-rose-400';
+    const status = idx < needed ? '✅ ຢູ່ໃນລາຍການ' : `❌ ບໍ່ຢູ່ — ຕ້ອງ Top ${needed}`;
+    res.innerHTML = `
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2">
+            <div class="flex justify-between items-center">
+                <span class="mono font-bold text-2xl text-amber-400">${val}</span>
+                <span class="${color} text-xs font-bold">${status}</span>
+            </div>
+            <div class="mono text-sm font-bold text-slate-300">Rank #${idx+1} / 100</div>
+            <div class="grid grid-cols-2 gap-2 text-[10px]">
+                <div class="bg-slate-900 rounded-lg p-2">🔥 Hot<div class="mono font-bold text-amber-400 text-base">${hotS}%</div></div>
+                <div class="bg-slate-900 rounded-lg p-2">⏳ Due<div class="mono font-bold text-rose-400 text-base">${dueS}%</div></div>
+                <div class="bg-slate-900 rounded-lg p-2">📈 Trend<div class="mono font-bold text-emerald-400 text-base">${trendS}%</div></div>
+                <div class="bg-slate-900 rounded-lg p-2">🎯 Overdue Ratio<div class="mono font-bold text-purple-400 text-base">${cycleS}%</div></div>
+            </div>
+            ${idx >= needed ? `<p class="text-[10px] text-slate-400">💡 ເພື່ອດຶງ <strong>${val}</strong> ຂຶ້ນ: ເພີ່ມ slider ທີ່ <strong>${hotS >= Math.max(hotS,dueS,trendS,cycleS) ? '🔥 Hot' : dueS >= Math.max(hotS,dueS,trendS,cycleS) ? '⏳ Due' : trendS >= Math.max(hotS,dueS,trendS,cycleS) ? '📈 Trend' : '🎯 Overdue Ratio'}</strong> ຊຶ່ງ ${val} ມີຄ່າສູງສຸດ</p>` : ''}
+        </div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════
