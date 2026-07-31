@@ -145,16 +145,20 @@
         <div class="space-y-3 mb-4 bg-slate-950/60 rounded-xl p-3 border border-slate-800">
             <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">ນ້ຳໜັກ Signal (ລວມ = 100%)</p>
             <div>
-                <div class="flex justify-between text-[11px] mb-1"><span class="text-slate-400">🔥 Frequency (Hot)</span><span id="sv-hot" class="mono text-amber-400">40%</span></div>
-                <input type="range" id="sl-hot" min="0" max="100" value="40" oninput="syncSl()" class="w-full accent-amber-400 h-1">
+                <div class="flex justify-between text-[11px] mb-1"><span class="text-slate-400">🔥 Frequency (Hot)</span><span id="sv-hot" class="mono text-amber-400">25%</span></div>
+                <input type="range" id="sl-hot" min="0" max="100" value="25" oninput="syncSl()" class="w-full accent-amber-400 h-1">
             </div>
             <div>
-                <div class="flex justify-between text-[11px] mb-1"><span class="text-slate-400">⏳ Due / Gap</span><span id="sv-due" class="mono text-rose-400">40%</span></div>
-                <input type="range" id="sl-due" min="0" max="100" value="40" oninput="syncSl()" class="w-full accent-rose-400 h-1">
+                <div class="flex justify-between text-[11px] mb-1"><span class="text-slate-400">⏳ Due / Gap</span><span id="sv-due" class="mono text-rose-400">25%</span></div>
+                <input type="range" id="sl-due" min="0" max="100" value="25" oninput="syncSl()" class="w-full accent-rose-400 h-1">
             </div>
             <div>
-                <div class="flex justify-between text-[11px] mb-1"><span class="text-slate-400">📈 Streak (ອອກຕໍ່ເນື່ອງ)</span><span id="sv-str" class="mono text-emerald-400">20%</span></div>
-                <input type="range" id="sl-str" min="0" max="100" value="20" oninput="syncSl()" class="w-full accent-emerald-400 h-1">
+                <div class="flex justify-between text-[11px] mb-1"><span class="text-slate-400">📈 Recent Trend (ອອກໃນ 10 ຄັ້ງຫຼ້າສຸດ)</span><span id="sv-str" class="mono text-emerald-400">25%</span></div>
+                <input type="range" id="sl-str" min="0" max="100" value="25" oninput="syncSl()" class="w-full accent-emerald-400 h-1">
+            </div>
+            <div>
+                <div class="flex justify-between text-[11px] mb-1"><span class="text-slate-400">🔄 Cycle (ຮອດຄິວຕາມ interval)</span><span id="sv-cyc" class="mono text-purple-400">25%</span></div>
+                <input type="range" id="sl-cyc" min="0" max="100" value="25" oninput="syncSl()" class="w-full accent-purple-400 h-1">
             </div>
             <div id="sl-warn" class="text-[10px] text-rose-400 hidden">⚠️ ລວມຕ້ອງໄດ້ 100%</div>
         </div>
@@ -409,10 +413,38 @@ function computeAll() {
         }
     });
 
-    // Streak: count in last 5
-    const r5 = draws.slice(0,5).map(d=>d.two_digit);
+    // Recent Trend: weighted recency score (last 10 draws)
+    const recent10 = draws.slice(0, 10);
     for (let a=0;a<=9;a++) for (let b=0;b<=9;b++) {
-        const k=`${a}${b}`; streak2D[k] = r5.filter(x=>x===k).length;
+        const k=`${a}${b}`; streak2D[k] = 0;
+    }
+    recent10.forEach((d, i) => {
+        if (d.two_digit) {
+            streak2D[d.two_digit] = (streak2D[d.two_digit]||0) + (10 - i) / 10;
+        }
+    });
+
+    // Cycle Score: how overdue based on average appearance interval
+    // If avg interval = 10 draws and last seen = 15 draws ago → overdue by 5 → high score
+    window.cycleScore2D = {};
+    for (let a=0;a<=9;a++) for (let b=0;b<=9;b++) {
+        const k = `${a}${b}`;
+        const appearances = [];
+        draws.forEach((d, i) => { if (d.two_digit === k) appearances.push(i); });
+        if (appearances.length < 2) {
+            // Never or once seen — use lastSeen as proxy
+            window.cycleScore2D[k] = lastSeen2D[k] / Math.max(draws.length, 1);
+        } else {
+            // Compute average gap between appearances
+            let gaps = [];
+            for (let i = 0; i < appearances.length - 1; i++) {
+                gaps.push(appearances[i+1] - appearances[i]);
+            }
+            const avgGap = gaps.reduce((a,b)=>a+b,0) / gaps.length;
+            const drawsSinceLastSeen = lastSeen2D[k]; // index = draws ago
+            // How many "cycles" overdue? >1 = overdue, <1 = early
+            window.cycleScore2D[k] = drawsSinceLastSeen / Math.max(avgGap, 1);
+        }
     }
 
     // ── MANDEL-SELBEE: Hot Pool 7 digits ──
@@ -455,6 +487,7 @@ function syncSl() {
     document.getElementById("sv-hot").textContent = document.getElementById("sl-hot").value+"%";
     document.getElementById("sv-due").textContent = document.getElementById("sl-due").value+"%";
     document.getElementById("sv-str").textContent = document.getElementById("sl-str").value+"%";
+    document.getElementById("sv-cyc").textContent = document.getElementById("sl-cyc").value+"%";
     document.getElementById("sl-warn").classList.add("hidden");
 }
 
@@ -466,30 +499,36 @@ function setGenCnt(n) {
     });
 }
 
-function score2D(pair, wH, wD, wS) {
-    // Normalize each signal independently to 0-1 range first
-    const allFreq = Object.values(freq2D);
-    const allGap  = Object.values(lastSeen2D);
-    const minF = Math.min(...allFreq), maxF = Math.max(...allFreq, minF+1);
-    const minG = Math.min(...allGap),  maxG = Math.max(...allGap,  minG+1);
-    const hotScore  = (freq2D[pair]     - minF) / (maxF - minF);  // 0=coldest 1=hottest
-    const dueScore  = (lastSeen2D[pair] - minG) / (maxG - minG);  // 0=just seen 1=most due
-    const strScore  = (streak2D[pair]   || 0)   / 5;              // 0-1
-    return hotScore * wH + dueScore * wD + strScore * wS;
+function score2D(pair, wH, wD, wS, wC) {
+    // Normalize each signal independently to 0-1 range
+    const allFreq   = Object.values(freq2D);
+    const allGap    = Object.values(lastSeen2D);
+    const allTrend  = Object.values(streak2D);
+    const allCycle  = Object.values(window.cycleScore2D || {});
+    const minF = Math.min(...allFreq),  maxF = Math.max(...allFreq,  minF+1);
+    const minG = Math.min(...allGap),   maxG = Math.max(...allGap,   minG+1);
+    const minT = Math.min(...allTrend), maxT = Math.max(...allTrend, minT+0.01);
+    const minC = Math.min(...allCycle), maxC = Math.max(...allCycle, minC+0.01);
+    const hotScore   = (freq2D[pair]    - minF) / (maxF - minF);
+    const dueScore   = (lastSeen2D[pair]- minG) / (maxG - minG);
+    const trendScore = ((streak2D[pair]||0) - minT) / (maxT - minT);
+    const cycleScore = ((window.cycleScore2D?.[pair]||0) - minC) / (maxC - minC);
+    return hotScore * wH + dueScore * wD + trendScore * wS + cycleScore * wC;
 }
 
 function generateSmart2D() {
     let wH = +document.getElementById("sl-hot").value;
     let wD = +document.getElementById("sl-due").value;
     let wS = +document.getElementById("sl-str").value;
-    const total = wH + wD + wS;
-    if (total === 0) { wH=40; wD=40; wS=20; }
-    else { const f=100/total; wH=wH*f; wD=wD*f; wS=wS*f; }
+    let wC = +document.getElementById("sl-cyc").value;
+    const total = wH + wD + wS + wC;
+    if (total === 0) { wH=25; wD=35; wS=15; wC=25; }
+    else { const f=100/total; wH=wH*f; wD=wD*f; wS=wS*f; wC=wC*f; }
     document.getElementById("sl-warn").classList.add("hidden");
 
     const all = [];
     for(let a=0;a<=9;a++) for(let b=0;b<=9;b++) {
-        const k=`${a}${b}`; all.push({pair:k, s:score2D(k,wH,wD,wS)});
+        const k=`${a}${b}`; all.push({pair:k, s:score2D(k,wH,wD,wS,wC)});
     }
     all.sort((a,b)=>b.s-a.s);
     const top = all.slice(0,genCount);
@@ -501,7 +540,8 @@ function generateSmart2D() {
         const pct = Math.round((item.s/maxS)*100);
         const isHot = freq2D[item.pair]>=3;
         const isDue = lastSeen2D[item.pair] >= Math.floor(draws.length*0.4);
-        const isStr = streak2D[item.pair]>0;
+        const isStr = streak2D[item.pair] > 0.5;
+        const isCyc = (window.cycleScore2D?.[item.pair]||0) > 1.2; // overdue by cycle
         const animal = animals[item.pair] || '';
         const row = document.createElement('div');
         row.className=`flex items-center justify-between px-3 py-2 rounded-lg ${i%2===0?'bg-slate-950/50':''}`;
@@ -514,7 +554,8 @@ function generateSmart2D() {
             <div class="flex items-center gap-1.5">
                 ${isHot?'<span class="pill bg-amber-900/40 text-amber-400">Hot</span>':''}
                 ${isDue?'<span class="pill bg-rose-900/40 text-rose-400">Due</span>':''}
-                ${isStr?'<span class="pill bg-emerald-900/40 text-emerald-400">Streak</span>':''}
+                ${isStr?'<span class="pill bg-emerald-900/40 text-emerald-400">Trend</span>':''}
+                ${isCyc?'<span class="pill bg-purple-900/40 text-purple-400">Cycle</span>':''}
                 <div class="w-12 bg-slate-800 rounded-full h-1 ml-1"><div class="bar" style="width:${pct}%"></div></div>
                 <span class="pill bg-slate-800 text-slate-400">${pct}%</span>
             </div>`;
