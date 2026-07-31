@@ -649,18 +649,23 @@ function generateSmart2D() {
     }
 
     // ── 3-Group Ensemble ─────────────────────────────────────────
-    // Group A (10): top blended score
+    // Dynamic group sizes: A=40% blended, B=50% raw gap, C=10% cycle
+    const sizeA = Math.max(4,  Math.floor(genCount * 0.40));
+    const sizeB = Math.max(4,  Math.floor(genCount * 0.50));
+    const sizeC = Math.max(1,  genCount - sizeA - sizeB);
+
+    // Group A: top blended (smart signal mix)
     const byBlended = [...pairData].sort((a,b)=>b.blended-a.blended);
-    const groupA = byBlended.slice(0, 10).map(x=>x.pair);
+    const groupA = byBlended.slice(0, sizeA).map(x=>x.pair);
 
-    // Group B (8): longest absent by raw gap — not in A
-    const byDue = [...pairData].sort((a,b)=>b.dueS-a.dueS);
-    const groupB = byDue.filter(x=>!groupA.includes(x.pair)).slice(0, 8).map(x=>x.pair);
+    // Group B: longest absent by RAW draws count — guaranteed diversity
+    const byRawGap = [...pairData].sort((a,b)=>(lastSeen2D[b.pair]||0)-(lastSeen2D[a.pair]||0));
+    const groupB = byRawGap.filter(x=>!groupA.includes(x.pair)).slice(0, sizeB).map(x=>x.pair);
 
-    // Group C (2): most overdue by z-score cycle — not in A or B
-    const byCycle = [...pairData].sort((a,b)=>b.cycleS-a.cycleS);
+    // Group C: most overdue vs own cycle pattern
+    const byCycle = [...pairData].sort((a,b)=>(window.cycleScore2D?.[b.pair]||0)-(window.cycleScore2D?.[a.pair]||0));
     const takenAB = new Set([...groupA, ...groupB]);
-    const groupC = byCycle.filter(x=>!takenAB.has(x.pair)).slice(0, 2).map(x=>x.pair);
+    const groupC = byCycle.filter(x=>!takenAB.has(x.pair)).slice(0, sizeC).map(x=>x.pair);
 
     // ── Console diagnostic: where is any specific pair? ──────────
     const debugPair = '02'; // change to check any pair
@@ -684,9 +689,9 @@ function generateSmart2D() {
                 <span class="font-bold ${included?'text-emerald-400':'text-rose-400'}">${included?'✅ INCLUDED':'❌ NOT INCLUDED'}</span>
             </div>
             <div class="grid grid-cols-2 gap-1 mono">
-                <div>🎯 Blended rank: <strong class="${rankBlended<=10?'text-emerald-400':'text-rose-400'}">#${rankBlended}</strong></div>
-                <div>⏳ Due rank: <strong class="${rankDue<=15?'text-emerald-400':'text-amber-400'}">#${rankDue}</strong></div>
-                <div>🔄 Cycle rank: <strong class="${rankCycle<=20?'text-emerald-400':'text-amber-400'}">#${rankCycle}</strong></div>
+                <div>🎯 Blended rank: <strong class="${rankBlended<=sizeA?'text-emerald-400':'text-rose-400'}">#${rankBlended} (need ≤${sizeA})</strong></div>
+                <div>⏳ Due rank: <strong class="${rankDue<=sizeA+sizeB?'text-emerald-400':'text-amber-400'}">#${rankDue} (need ≤${sizeA+sizeB})</strong></div>
+                <div>🔄 Cycle rank: <strong class="${rankCycle<=genCount?'text-emerald-400':'text-amber-400'}">#${rankCycle}</strong></div>
                 <div>🔥 Hot: <strong>${(dp.hotS*100).toFixed(0)}%</strong></div>
                 <div>📈 Trend: <strong>${(dp.trendS*100).toFixed(0)}%</strong></div>
                 <div>⏳ Due: <strong>${(dp.dueS*100).toFixed(0)}%</strong></div>
