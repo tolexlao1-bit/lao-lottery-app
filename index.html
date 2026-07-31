@@ -454,26 +454,27 @@ function computeAll() {
         }
     });
 
-    // Cycle Score: how overdue based on average appearance interval
-    // If avg interval = 10 draws and last seen = 15 draws ago → overdue by 5 → high score
+    // Cycle Score: z-score style — how many std-devs overdue vs own avg gap
+    // This is FAIR: a pair that normally appears every 5 draws but is 25 draws absent
+    // scores the SAME as a pair that normally appears every 50 draws and is 250 draws absent
     window.cycleScore2D = {};
     for (let a=0;a<=9;a++) for (let b=0;b<=9;b++) {
         const k = `${a}${b}`;
         const appearances = [];
         draws.forEach((d, i) => { if (d.two_digit === k) appearances.push(i); });
+        const drawsSinceLast = lastSeen2D[k] === draws.length ? draws.length : lastSeen2D[k];
         if (appearances.length < 2) {
-            // Never or once seen — use lastSeen as proxy
-            window.cycleScore2D[k] = lastSeen2D[k] / Math.max(draws.length, 1);
+            window.cycleScore2D[k] = drawsSinceLast / Math.max(draws.length/100, 1);
         } else {
-            // Compute average gap between appearances
             let gaps = [];
             for (let i = 0; i < appearances.length - 1; i++) {
                 gaps.push(appearances[i+1] - appearances[i]);
             }
             const avgGap = gaps.reduce((a,b)=>a+b,0) / gaps.length;
-            const drawsSinceLastSeen = lastSeen2D[k]; // index = draws ago
-            // How many "cycles" overdue? >1 = overdue, <1 = early
-            window.cycleScore2D[k] = drawsSinceLastSeen / Math.max(avgGap, 1);
+            const variance = gaps.reduce((s,g)=>s+(g-avgGap)**2,0)/gaps.length;
+            const stdDev = Math.sqrt(variance) || 1;
+            // z-score: how many std-devs past the avg gap are we?
+            window.cycleScore2D[k] = (drawsSinceLast - avgGap) / stdDev;
         }
     }
 
@@ -652,14 +653,14 @@ function generateSmart2D() {
     const byBlended = [...pairData].sort((a,b)=>b.blended-a.blended);
     const groupA = byBlended.slice(0, 10).map(x=>x.pair);
 
-    // Group B (5): longest absent (due score) — not in A
+    // Group B (8): longest absent by raw gap — not in A
     const byDue = [...pairData].sort((a,b)=>b.dueS-a.dueS);
-    const groupB = byDue.filter(x=>!groupA.includes(x.pair)).slice(0, 5).map(x=>x.pair);
+    const groupB = byDue.filter(x=>!groupA.includes(x.pair)).slice(0, 8).map(x=>x.pair);
 
-    // Group C (5): most overdue vs own cycle — not in A or B
+    // Group C (2): most overdue by z-score cycle — not in A or B
     const byCycle = [...pairData].sort((a,b)=>b.cycleS-a.cycleS);
     const takenAB = new Set([...groupA, ...groupB]);
-    const groupC = byCycle.filter(x=>!takenAB.has(x.pair)).slice(0, 5).map(x=>x.pair);
+    const groupC = byCycle.filter(x=>!takenAB.has(x.pair)).slice(0, 2).map(x=>x.pair);
 
     // ── Console diagnostic: where is any specific pair? ──────────
     const debugPair = '02'; // change to check any pair
@@ -741,8 +742,8 @@ function generateSmart2D() {
 
     // ── MISSED PAIR FINDER ──────────────────────────────────────
     // Score ALL 100 pairs and show full ranked list with search
-    window._lastAllScored = all; // store for lookup
-    renderRankTable(all, top);
+    window._lastAllScored = byBlended; // store for lookup
+    renderRankTable(byBlended, top);
 
     document.getElementById('s2d-out').classList.remove('hidden');
 }
@@ -752,10 +753,10 @@ function renderRankTable(all, top) {
     const cont = document.getElementById('rank-table');
     if (!cont) return;
     cont.innerHTML = '';
-    const maxS = all[0]?.s || 1;
+    const maxS = all[0]?.blended || all[0]?.s || 1;
     all.forEach((item, i) => {
         const inTop = topSet.has(item.pair);
-        const pct = Math.round((item.s / maxS) * 100);
+        const pct = Math.round(((item.blended||item.s||0) / maxS) * 100);
         const animal = animals[item.pair] || '';
         const row = document.createElement('div');
         row.className = `flex items-center gap-2 px-2 py-1 rounded text-[11px] ${inTop ? 'bg-amber-500/10 border border-amber-500/30' : ''}`;
