@@ -628,7 +628,7 @@ function generateSmart2D() {
     else { const f=100/total; wH=wH*f; wD=wD*f; wS=wS*f; wC=wC*f; }
     document.getElementById("sl-warn").classList.add("hidden");
 
-    // ── Pre-normalize all signals (0-1) for ranking ──────────────
+    // Normalize signals 0-1
     const allFreq  = Object.values(freq2D);
     const allGap   = Object.values(lastSeen2D);
     const allTrend = Object.values(streak2D);
@@ -641,79 +641,45 @@ function generateSmart2D() {
     const pairData = [];
     for(let a=0;a<=9;a++) for(let b=0;b<=9;b++) {
         const k=`${a}${b}`;
-        const hotS   = ((freq2D[k]||0)                 - minF) / (maxF-minF);
-        const dueS   = ((lastSeen2D[k]||0)              - minG) / (maxG-minG);
-        const trendS = ((streak2D[k]||0)                - minT) / (maxT-minT);
-        const cycleS = ((window.cycleScore2D?.[k]||0)   - minC) / (maxC-minC);
+        const hotS   = ((freq2D[k]||0)               - minF) / (maxF-minF);
+        const dueS   = ((lastSeen2D[k]||0)            - minG) / (maxG-minG);
+        const trendS = ((streak2D[k]||0)              - minT) / (maxT-minT);
+        const cycleS = ((window.cycleScore2D?.[k]||0) - minC) / (maxC-minC);
         const blended = hotS*wH + dueS*wD + trendS*wS + cycleS*wC;
         pairData.push({ pair:k, hotS, dueS, trendS, cycleS, blended });
     }
 
-    // ── 3-Group Ensemble ─────────────────────────────────────────
-    // Dynamic group sizes: A=40% blended, B=50% raw gap, C=10% cycle
-    const sizeA = Math.max(4,  Math.floor(genCount * 0.40));
-    const sizeB = Math.max(4,  Math.floor(genCount * 0.50));
-    const sizeC = Math.max(1,  genCount - sizeA - sizeB);
+    // Group sizes: A=40% smart, B=50% raw-gap, C=remainder cycle
+    const sizeA = Math.max(4, Math.floor(genCount * 0.40));
+    const sizeB = Math.max(4, Math.floor(genCount * 0.50));
+    const sizeC = Math.max(0, genCount - sizeA - sizeB);
 
-    // Group A: top blended (smart signal mix)
+    // Group A: top blended score
     const byBlended = [...pairData].sort((a,b)=>b.blended-a.blended);
     const groupA = byBlended.slice(0, sizeA).map(x=>x.pair);
 
-    // Group B: longest absent by RAW draws count — guaranteed diversity
+    // Group B: longest absent by RAW gap (lastSeen2D) — not in A
     const byRawGap = [...pairData].sort((a,b)=>(lastSeen2D[b.pair]||0)-(lastSeen2D[a.pair]||0));
     const groupB = byRawGap.filter(x=>!groupA.includes(x.pair)).slice(0, sizeB).map(x=>x.pair);
 
-    // Group C: most overdue vs own cycle pattern
-    const byCycle = [...pairData].sort((a,b)=>(window.cycleScore2D?.[b.pair]||0)-(window.cycleScore2D?.[a.pair]||0));
+    // Group C: most overdue by cycle z-score — not in A or B
     const takenAB = new Set([...groupA, ...groupB]);
-    const groupC = byCycle.filter(x=>!takenAB.has(x.pair)).slice(0, sizeC).map(x=>x.pair);
+    const byCycle = [...pairData].sort((a,b)=>(window.cycleScore2D?.[b.pair]||0)-(window.cycleScore2D?.[a.pair]||0));
+    const groupC = sizeC > 0 ? byCycle.filter(x=>!takenAB.has(x.pair)).slice(0, sizeC).map(x=>x.pair) : [];
 
-    // ── Console diagnostic: where is any specific pair? ──────────
-    const debugPair = '02'; // change to check any pair
-    const dp = pairData.find(x=>x.pair===debugPair);
-    const rankBlended = byBlended.findIndex(x=>x.pair===debugPair)+1;
-    const rankDue     = byDue.findIndex(x=>x.pair===debugPair)+1;
-    const rankCycle   = byCycle.findIndex(x=>x.pair===debugPair)+1;
-    console.log(`[Engine] ${debugPair}: blended rank=${rankBlended}/100, due rank=${rankDue}/100, cycle rank=${rankCycle}/100`);
-    console.log(`[Engine] ${debugPair}: hot=${(dp.hotS*100).toFixed(1)}% due=${(dp.dueS*100).toFixed(1)}% trend=${(dp.trendS*100).toFixed(1)}% cycle=${(dp.cycleS*100).toFixed(1)}%`);
-    console.log(`[Engine] GroupA=${JSON.stringify(groupA)} GroupB=${JSON.stringify(groupB)} GroupC=${JSON.stringify(groupC)}`);
-
-    // ── Render diagnostic panel ───────────────────────────────────
-    const diagEl = document.getElementById('s2d-diag');
-    if (diagEl) {
-        const inA = groupA.includes(debugPair), inB = groupB.includes(debugPair), inC = groupC.includes(debugPair);
-        const included = inA||inB||inC;
-        diagEl.innerHTML = `
-        <div class="bg-slate-950 border ${included?'border-emerald-500/40':'border-rose-500/40'} rounded-xl p-3 text-[11px]">
-            <div class="flex justify-between items-center mb-2">
-                <span class="font-bold text-slate-300">🔬 02 Diagnostic</span>
-                <span class="font-bold ${included?'text-emerald-400':'text-rose-400'}">${included?'✅ INCLUDED':'❌ NOT INCLUDED'}</span>
-            </div>
-            <div class="grid grid-cols-2 gap-1 mono">
-                <div>🎯 Blended rank: <strong class="${rankBlended<=sizeA?'text-emerald-400':'text-rose-400'}">#${rankBlended} (need ≤${sizeA})</strong></div>
-                <div>⏳ Due rank: <strong class="${rankDue<=sizeA+sizeB?'text-emerald-400':'text-amber-400'}">#${rankDue} (need ≤${sizeA+sizeB})</strong></div>
-                <div>🔄 Cycle rank: <strong class="${rankCycle<=genCount?'text-emerald-400':'text-amber-400'}">#${rankCycle}</strong></div>
-                <div>🔥 Hot: <strong>${(dp.hotS*100).toFixed(0)}%</strong></div>
-                <div>📈 Trend: <strong>${(dp.trendS*100).toFixed(0)}%</strong></div>
-                <div>⏳ Due: <strong>${(dp.dueS*100).toFixed(0)}%</strong></div>
-            </div>
-            ${!included ? `<p class="mt-2 text-rose-300">→ ຕ້ອງ rank ≤10 (Blended), ≤15 (Due), ຫຼື ≤20 (Cycle) ຈຶ່ງຕິດ</p>` : ''}
-        </div>`;
-        diagEl.classList.remove('hidden');
-    }
-
-    // Merge
+    // Merge all groups
     const topPairs = [...groupA, ...groupB, ...groupC];
     const top = topPairs.map(pair => {
         const d = pairData.find(x=>x.pair===pair);
         return { pair, s: d.blended, group: groupA.includes(pair)?'A': groupB.includes(pair)?'B':'C' };
     });
-    const maxS = top[0]?.s||1;
+    const maxS = byBlended[0]?.blended || 1;
 
+    // Render list
     const cont = document.getElementById('s2d-tickets');
     cont.innerHTML='';
     top.forEach((item,i) => {
-        const pct = Math.max(1, Math.round((item.s/maxS)*100));
+        const pct = Math.max(1, Math.round((item.s / maxS) * 100));
         const animal = animals[item.pair] || '';
         const groupLabel = item.group==='A'
             ? '<span class="pill bg-slate-700 text-slate-300">🎯 Smart</span>'
@@ -736,21 +702,18 @@ function generateSmart2D() {
         cont.appendChild(row);
     });
 
-    // Backtest this set
+    // Backtest
     const pSet = new Set(top.map(x=>x.pair));
-    let h=0,t=0; draws.forEach(d=>{ if(d.two_digit){if(pSet.has(d.two_digit))h++;t++;} });
-    const rate = t>0?Math.round(h/t*100):0;
+    let h=0,t=0;
+    draws.forEach(d=>{ if(d.two_digit){ if(pSet.has(d.two_digit))h++; t++; } });
+    const rate = t>0 ? Math.round(h/t*100) : 0;
     document.getElementById('s2d-bt').innerHTML = draws.length<4
         ? '<span class="text-slate-600 italic text-xs">ຕ້ອງການ ≥ 4 ຂໍ້ມູນ</span>'
         : `ຊຸດ ${genCount} ຄູ່ນີ້: <strong class="text-emerald-400">${h}/${t}</strong> = <strong class="text-emerald-400">${rate}%</strong> ໃນ DB`;
 
-    document.getElementById('s2d-cnt').textContent = top.length+' ຄູ່';
-
-    // ── MISSED PAIR FINDER ──────────────────────────────────────
-    // Score ALL 100 pairs and show full ranked list with search
-    window._lastAllScored = byBlended; // store for lookup
+    document.getElementById('s2d-cnt').textContent = top.length + ' ຄູ່';
+    window._lastAllScored = byBlended;
     renderRankTable(byBlended, top);
-
     document.getElementById('s2d-out').classList.remove('hidden');
 }
 
