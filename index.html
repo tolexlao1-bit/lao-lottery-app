@@ -163,14 +163,10 @@
             <div id="sl-warn" class="text-[10px] text-rose-400 hidden">⚠️ ລວມຕ້ອງໄດ້ 100%</div>
         </div>
 
-        <!-- Count -->
-        <div class="flex items-center justify-between mb-4">
-            <span class="text-xs text-slate-400">ຈຳນວນຄູ່ 2D</span>
-            <div class="flex gap-1">
-                <button onclick="setGenCnt(10)" id="gc-10" class="mono text-[11px] px-3 py-1.5 rounded-lg tab-active">10</button>
-                <button onclick="setGenCnt(15)" id="gc-15" class="mono text-[11px] px-3 py-1.5 rounded-lg tab-inactive">15</button>
-                <button onclick="setGenCnt(20)" id="gc-20" class="mono text-[11px] px-3 py-1.5 rounded-lg tab-inactive">20</button>
-            </div>
+        <!-- Fixed 10 pairs -->
+        <div class="flex items-center justify-between mb-4 bg-slate-950/60 border border-amber-500/20 rounded-xl px-3 py-2">
+            <span class="text-xs text-slate-400">ຈຳນວນຄູ່ 2D (ດີທີ່ສຸດ)</span>
+            <span class="mono text-amber-400 font-bold text-sm">10 ຄູ່</span>
         </div>
 
         <!-- Pair lookup -->
@@ -198,6 +194,12 @@
             <div class="mt-3 bg-slate-950/60 border border-slate-800 rounded-xl p-3">
                 <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Backtest ຊຸດນີ້</p>
                 <div id="s2d-bt" class="text-xs text-slate-400"></div>
+            </div>
+
+            <!-- 6D BEST NUMBERS -->
+            <div class="mt-3 bg-slate-950/60 border border-amber-500/20 rounded-xl p-3">
+                <p class="text-[10px] text-amber-400 font-bold uppercase tracking-wider mb-2">🎰 Top 5 ເລກ 6 ຕົວ (Best Combos)</p>
+                <div id="s6d-list" class="space-y-2"></div>
             </div>
 
             <!-- PAIR SEARCH -->
@@ -354,7 +356,7 @@ let streak2D  = {};         // "XY" => appearances in last 5
 let hotPool7  = [1,2,3,5,7,8,9];   // top 7 frequent digits
 let harveyDelta = 2.50;
 let dbSeed    = 12345;
-let genCount  = 10;
+let genCount  = 10; // Fixed at 10 — best only
 let delKey    = null;
 
 // Lao animal chart
@@ -523,13 +525,7 @@ function syncSl() {
     document.getElementById("sl-warn").classList.add("hidden");
 }
 
-function setGenCnt(n) {
-    genCount = n;
-    [10,15,20].forEach(x => {
-        document.getElementById("gc-"+x).classList.toggle("tab-active", x===n);
-        document.getElementById("gc-"+x).classList.toggle("tab-inactive", x!==n);
-    });
-}
+function setGenCnt(n) { genCount = 10; } // Always 10
 
 function score2D(pair, wH, wD, wS, wC) {
     // ── 4 SIGNALS, each normalized 0-1 independently ──
@@ -649,10 +645,10 @@ function generateSmart2D() {
         pairData.push({ pair:k, hotS, dueS, trendS, cycleS, blended });
     }
 
-    // Group sizes: A=40% smart, B=50% raw-gap, C=remainder cycle
-    const sizeA = Math.max(4, Math.floor(genCount * 0.40));
-    const sizeB = Math.max(4, Math.floor(genCount * 0.50));
-    const sizeC = Math.max(0, genCount - sizeA - sizeB);
+    // Fixed groups for 10 pairs: 4 Smart + 4 Due + 2 Cycle
+    const sizeA = 4;
+    const sizeB = 4;
+    const sizeC = 2;
 
     // Group A: top blended score
     const byBlended = [...pairData].sort((a,b)=>b.blended-a.blended);
@@ -660,6 +656,10 @@ function generateSmart2D() {
 
     // Group B: longest absent by RAW gap (lastSeen2D) — not in A
     const byRawGap = [...pairData].sort((a,b)=>(lastSeen2D[b.pair]||0)-(lastSeen2D[a.pair]||0));
+    // Debug: show top 20 absent pairs in console
+    console.log('[RAW GAP TOP 20]', byRawGap.slice(0,20).map(x=>`${x.pair}=${lastSeen2D[x.pair]}draws`).join(', '));
+    console.log('[GROUP A took]', groupA.join(', '));
+    console.log('[GROUP B will be]', byRawGap.filter(x=>!groupA.includes(x.pair)).slice(0,sizeB).map(x=>`${x.pair}(${lastSeen2D[x.pair]})`).join(', '));
     const groupB = byRawGap.filter(x=>!groupA.includes(x.pair)).slice(0, sizeB).map(x=>x.pair);
 
     // Group C: most overdue by cycle z-score — not in A or B
@@ -714,7 +714,48 @@ function generateSmart2D() {
     document.getElementById('s2d-cnt').textContent = top.length + ' ຄູ່';
     window._lastAllScored = byBlended;
     renderRankTable(byBlended, top);
+    // Generate Top 5 6-digit numbers from hot digits + top 2D pairs
+    generate6D(top);
     document.getElementById('s2d-out').classList.remove('hidden');
+}
+
+function generate6D(top2D) {
+    // Use top 2D pairs as the last 2 digits
+    // Fill first 4 digits from hot pool digits (most frequent)
+    const hotDigits = freqDigit.map((c,i)=>({d:i,c})).sort((a,b)=>b.c-a.c).map(x=>x.d);
+    const top5pairs = top2D.slice(0,5).map(x=>x.pair);
+    
+    const results = [];
+    top5pairs.forEach((pair, idx) => {
+        // Build 6D: pick 4 hot digits + this 2D pair as last 2
+        // Vary first 4 digits to create diverse numbers
+        const d0 = hotDigits[idx % hotDigits.length];
+        const d1 = hotDigits[(idx+1) % hotDigits.length];
+        const d2 = hotDigits[(idx+2) % hotDigits.length];
+        const d3 = hotDigits[(idx+3) % hotDigits.length];
+        const num6d = `${d0}${d1}${d2}${d3}${pair}`;
+        results.push({ num: num6d, pair });
+    });
+
+    const cont = document.getElementById('s6d-list');
+    if (!cont) return;
+    cont.innerHTML = '';
+    results.forEach((r, i) => {
+        const el = document.createElement('div');
+        el.className = 'flex items-center justify-between bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5';
+        el.innerHTML = `
+            <div class="flex items-center gap-3">
+                <span class="text-[10px] text-slate-600 mono">#${i+1}</span>
+                <span class="mono font-bold text-lg tracking-widest">
+                    <span class="text-slate-400">${r.num.substring(0,4)}</span><span class="text-amber-400">${r.num.substring(4,6)}</span>
+                </span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="pill bg-amber-900/30 text-amber-400">2D: ${r.pair}</span>
+                <span class="pill bg-slate-800 text-slate-400">${animals[r.pair]||''}</span>
+            </div>`;
+        cont.appendChild(el);
+    });
 }
 
 function renderRankTable(all, top) {
