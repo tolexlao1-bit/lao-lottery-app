@@ -163,10 +163,14 @@
             <div id="sl-warn" class="text-[10px] text-rose-400 hidden">⚠️ ລວມຕ້ອງໄດ້ 100%</div>
         </div>
 
-        <!-- Fixed 10 pairs -->
-        <div class="flex items-center justify-between mb-4 bg-slate-950/60 border border-amber-500/20 rounded-xl px-3 py-2">
-            <span class="text-xs text-slate-400">ຈຳນວນຄູ່ 2D (ດີທີ່ສຸດ)</span>
-            <span class="mono text-amber-400 font-bold text-sm">10 ຄູ່</span>
+        <!-- Count -->
+        <div class="flex items-center justify-between mb-4">
+            <span class="text-xs text-slate-400">ຈຳນວນຄູ່ 2D</span>
+            <div class="flex gap-1">
+                <button onclick="setGenCnt(10)" id="gc-10" class="mono text-[11px] px-3 py-1.5 rounded-lg tab-active">10</button>
+                <button onclick="setGenCnt(15)" id="gc-15" class="mono text-[11px] px-3 py-1.5 rounded-lg tab-inactive">15</button>
+                <button onclick="setGenCnt(20)" id="gc-20" class="mono text-[11px] px-3 py-1.5 rounded-lg tab-inactive">20</button>
+            </div>
         </div>
 
         <!-- Pair lookup -->
@@ -525,7 +529,13 @@ function syncSl() {
     document.getElementById("sl-warn").classList.add("hidden");
 }
 
-function setGenCnt(n) { genCount = 10; } // Always 10
+function setGenCnt(n) {
+    genCount = n;
+    [10,15,20].forEach(x => {
+        document.getElementById("gc-"+x).classList.toggle("tab-active", x===n);
+        document.getElementById("gc-"+x).classList.toggle("tab-inactive", x!==n);
+    });
+}
 
 function score2D(pair, wH, wD, wS, wC) {
     // ── 4 SIGNALS, each normalized 0-1 independently ──
@@ -645,10 +655,10 @@ function generateSmart2D() {
         pairData.push({ pair:k, hotS, dueS, trendS, cycleS, blended });
     }
 
-    // Fixed groups for 10 pairs: 4 Smart + 4 Due + 2 Cycle
-    const sizeA = 4;
-    const sizeB = 4;
-    const sizeC = 2;
+    // Dynamic group sizes: A=40% smart, B=50% raw-gap, C=remainder cycle
+    const sizeA = Math.max(4, Math.floor(genCount * 0.40));
+    const sizeB = Math.max(4, Math.floor(genCount * 0.50));
+    const sizeC = Math.max(0, genCount - sizeA - sizeB);
 
     // Group A: top blended score
     const byBlended = [...pairData].sort((a,b)=>b.blended-a.blended);
