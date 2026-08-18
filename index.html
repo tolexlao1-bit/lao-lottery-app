@@ -196,7 +196,7 @@
             <div id="s2d-diag" class="mb-3 hidden"></div>
             <div id="s2d-tickets" class="bg-slate-950 border border-slate-800 rounded-xl p-2 space-y-1 max-h-80 overflow-y-auto"></div>
             <div class="mt-3 bg-slate-950/60 border border-slate-800 rounded-xl p-3">
-                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Backtest ຊຸດນີ້</p>
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Backtest ຊຸດນີ້ (Walk-Forward)</p>
                 <div id="s2d-bt" class="text-xs text-slate-400"></div>
             </div>
 
@@ -516,8 +516,84 @@ function renderKPIs() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ── MANDEL-SELBEE ENGINE ────────────────────────────────────────
+// ── WALK-FORWARD ENSEMBLE BACKTEST ──────────────────────────────
+// Computes all 4 signals using ONLY data older than the draw being
+// tested (no lookahead), so the reported hit-rate reflects what the
+// engine would actually have achieved in real time.
 // ═══════════════════════════════════════════════════════════════
+function computeSignalsFor(trainDraws) {
+    const n = trainDraws.length;
+    const f2 = {}, ls = {}, st = {};
+    for (let a=0;a<=9;a++) for (let b=0;b<=9;b++) { const k=`${a}${b}`; f2[k]=0; ls[k]=n; }
+    trainDraws.forEach((d,i) => {
+        const p = d.two_digit;
+        if (p) { f2[p]++; if (ls[p]===n) ls[p]=i; }
+    });
+    const recent10 = trainDraws.slice(0,10);
+    for (let a=0;a<=9;a++) for (let b=0;b<=9;b++) st[`${a}${b}`]=0;
+    recent10.forEach((d,i)=>{ if(d.two_digit) st[d.two_digit]=(st[d.two_digit]||0)+(10-i)/10; });
+
+    const cyc = {};
+    for (let a=0;a<=9;a++) for (let b=0;b<=9;b++) {
+        const k=`${a}${b}`;
+        const appearances=[];
+        trainDraws.forEach((d,i)=>{ if(d.two_digit===k) appearances.push(i); });
+        const drawsSinceLast = ls[k]===n ? n : ls[k];
+        if (appearances.length<2) {
+            cyc[k] = drawsSinceLast / Math.max(n/100,1);
+        } else {
+            let gaps=[];
+            for(let i=0;i<appearances.length-1;i++) gaps.push(appearances[i+1]-appearances[i]);
+            const avgGap=gaps.reduce((a,b)=>a+b,0)/gaps.length;
+            const variance=gaps.reduce((s,g)=>s+(g-avgGap)**2,0)/gaps.length;
+            const stdDev=Math.sqrt(variance)||1;
+            cyc[k]=(drawsSinceLast-avgGap)/stdDev;
+        }
+    }
+    return { freq2D:f2, lastSeen2D:ls, streak2D:st, cycleScore2D:cyc };
+}
+
+function blendRank(sig, wH, wD, wS, wC) {
+    const allFreq=Object.values(sig.freq2D), allGap=Object.values(sig.lastSeen2D),
+          allTrend=Object.values(sig.streak2D), allCycle=Object.values(sig.cycleScore2D);
+    const minF=Math.min(...allFreq), maxF=Math.max(...allFreq,minF+1);
+    const minG=Math.min(...allGap), maxG=Math.max(...allGap,minG+1);
+    const minT=Math.min(...allTrend), maxT=Math.max(...allTrend,minT+0.01);
+    const minC=Math.min(...allCycle), maxC=Math.max(...allCycle,minC+0.01);
+    const scored=[];
+    for(let a=0;a<=9;a++) for(let b=0;b<=9;b++){
+        const k=`${a}${b}`;
+        const hs=((sig.freq2D[k]||0)-minF)/(maxF-minF);
+        const ds=((sig.lastSeen2D[k]||0)-minG)/(maxG-minG);
+        const ts=((sig.streak2D[k]||0)-minT)/(maxT-minT);
+        const cs=((sig.cycleScore2D[k]||0)-minC)/(maxC-minC);
+        scored.push({pair:k, s: hs*wH+ds*wD+ts*wS+cs*wC});
+    }
+    scored.sort((a,b)=>b.s-a.s);
+    return scored;
+}
+
+// True out-of-sample test: at each step, train signals on OLDER draws
+// only, then check whether the NEXT (more recent) actual draw's 2D
+// falls inside that step's top-N prediction. No future data touches
+// the ranking used to test it.
+function backtestEnsembleHR(topN, wH, wD, wS, wC) {
+    const MIN_TRAIN = 20; // need a reasonable history before trusting signals
+    if (draws.length < MIN_TRAIN + 5) return { rate:-1, hits:0, tested:0 };
+    let hits=0, tested=0;
+    const lim = Math.min(draws.length - MIN_TRAIN, 30);
+    for (let i=1;i<=lim;i++) {
+        const train = draws.slice(i);
+        if (train.length < MIN_TRAIN) break;
+        const sig = computeSignalsFor(train);
+        const ranked = blendRank(sig, wH, wD, wS, wC);
+        const topSet = new Set(ranked.slice(0, topN).map(x=>x.pair));
+        const actual = draws[i-1].two_digit;
+        if (actual) { if (topSet.has(actual)) hits++; tested++; }
+    }
+    return { rate: tested>0 ? Math.round(hits/tested*100) : -1, hits, tested };
+}
+
 // ═══════════════════════════════════════════════════════════════
 // ── SMART 2D ENGINE ─────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════
@@ -535,34 +611,6 @@ function setGenCnt(n) {
         document.getElementById("gc-"+x).classList.toggle("tab-active", x===n);
         document.getElementById("gc-"+x).classList.toggle("tab-inactive", x!==n);
     });
-}
-
-function score2D(pair, wH, wD, wS, wC) {
-    // ── 4 SIGNALS, each normalized 0-1 independently ──
-    const allFreq  = Object.values(freq2D);
-    const allGap   = Object.values(lastSeen2D);
-    const allTrend = Object.values(streak2D);
-    const allOD    = Object.values(window.overdueRatio || {});
-
-    const minF=Math.min(...allFreq),  maxF=Math.max(...allFreq,  minF+1);
-    const minG=Math.min(...allGap),   maxG=Math.max(...allGap,   minG+1);
-    const minT=Math.min(...allTrend), maxT=Math.max(...allTrend, minT+0.01);
-    const minO=Math.min(...allOD),    maxO=Math.max(...allOD,    minO+0.01);
-
-    // Signal 1: Frequency (Hot) — how often it appeared overall
-    const hotScore   = (freq2D[pair]    - minF) / (maxF - minF);
-
-    // Signal 2: Raw Gap (Due) — how many draws since last seen
-    const dueScore   = (lastSeen2D[pair]- minG) / (maxG - minG);
-
-    // Signal 3: Recent Trend — weighted appearances in last 10
-    const trendScore = ((streak2D[pair]||0) - minT) / (maxT - minT);
-
-    // Signal 4: Overdue Ratio — gap vs its own avg interval (KEY SIGNAL)
-    // A pair that appears every 40 draws but hasn't appeared in 60 = ratio 1.5 = very overdue
-    const odScore    = ((window.overdueRatio?.[pair]||0) - minO) / (maxO - minO);
-
-    return hotScore * wH + dueScore * wD + trendScore * wS + odScore * wC;
 }
 
 function lookupPair() {
@@ -666,10 +714,6 @@ function generateSmart2D() {
 
     // Group B: longest absent by RAW gap (lastSeen2D) — not in A
     const byRawGap = [...pairData].sort((a,b)=>(lastSeen2D[b.pair]||0)-(lastSeen2D[a.pair]||0));
-    // Debug: show top 20 absent pairs in console
-    console.log('[RAW GAP TOP 20]', byRawGap.slice(0,20).map(x=>`${x.pair}=${lastSeen2D[x.pair]}draws`).join(', '));
-    console.log('[GROUP A took]', groupA.join(', '));
-    console.log('[GROUP B will be]', byRawGap.filter(x=>!groupA.includes(x.pair)).slice(0,sizeB).map(x=>`${x.pair}(${lastSeen2D[x.pair]})`).join(', '));
     const groupB = byRawGap.filter(x=>!groupA.includes(x.pair)).slice(0, sizeB).map(x=>x.pair);
 
     // Group C: most overdue by cycle z-score — not in A or B
@@ -712,14 +756,22 @@ function generateSmart2D() {
         cont.appendChild(row);
     });
 
-    // Backtest
-    const pSet = new Set(top.map(x=>x.pair));
-    let h=0,t=0;
-    draws.forEach(d=>{ if(d.two_digit){ if(pSet.has(d.two_digit))h++; t++; } });
-    const rate = t>0 ? Math.round(h/t*100) : 0;
-    document.getElementById('s2d-bt').innerHTML = draws.length<4
-        ? '<span class="text-slate-600 italic text-xs">ຕ້ອງການ ≥ 4 ຂໍ້ມູນ</span>'
-        : `ຊຸດ ${genCount} ຄູ່ນີ້: <strong class="text-emerald-400">${h}/${t}</strong> = <strong class="text-emerald-400">${rate}%</strong> ໃນ DB`;
+    // ── Backtest: TRUE walk-forward, no lookahead ──
+    const bt = backtestEnsembleHR(genCount, wH, wD, wS, wC);
+    const baseline = Math.round(genCount / 100 * 100); // random-chance rate for picking N of 100 pairs
+    if (bt.rate < 0) {
+        document.getElementById('s2d-bt').innerHTML =
+            '<span class="text-slate-600 italic text-xs">ຕ້ອງການ ≥ 25 ຂໍ້ມູນ ສຳລັບ walk-forward test</span>';
+    } else {
+        const beat = bt.rate > baseline;
+        document.getElementById('s2d-bt').innerHTML = `
+            ${genCount} ຄູ່ (ensemble): <strong class="${beat?'text-emerald-400':'text-rose-400'}">${bt.hits}/${bt.tested}</strong>
+            = <strong class="${beat?'text-emerald-400':'text-rose-400'}">${bt.rate}%</strong>
+            <span class="text-slate-600"> vs ສຸ່ມແທ້ (${baseline}%)</span>
+            <p class="text-[10px] mt-1 ${beat?'text-emerald-500':'text-slate-500'}">
+                ${beat ? '✓ ຊະນະ random ໃນຂໍ້ມູນຍ້ອນຫລັງນີ້' : 'ບໍ່ຕ່າງຈາກ random ຢ່າງມີນັຍສຳຄັນ — ຢ່າເຊື່ອຫລາຍເກີນໄປ'}
+            </p>`;
+    }
 
     document.getElementById('s2d-cnt').textContent = top.length + ' ຄູ່';
     window._lastAllScored = byBlended;
@@ -896,18 +948,19 @@ function renderStats() {
             </div>`).join('')
         : '<p class="text-slate-600 text-xs italic">ຕ້ອງການຂໍ້ມູນ</p>';
 
-    // Backtest table
-    const rates = [5,10,15,20].map(n=>({n,r:backtestHR(n)}));
+    // Backtest table — Hot-only signal, walk-forward, with random baseline shown
+    const rates = [5,10,15,20].map(n=>({n,r:backtestHR(n), base:n}));
     document.getElementById('bt-stat').innerHTML = draws.length<4
         ? '<p class="text-slate-600 text-xs italic">ຕ້ອງການ ≥ 4 ຂໍ້ມູນ</p>'
         : `<div class="grid grid-cols-2 gap-2">
-            ${rates.map(({n,r})=>`
+            ${rates.map(({n,r,base})=>`
             <div class="bg-slate-950/60 border border-slate-800 rounded-xl px-3 py-2.5 text-center">
                 <div class="text-[10px] text-slate-500 mb-0.5">Top ${n} ຄູ່</div>
                 <div class="mono text-2xl font-bold ${r>=50?'text-emerald-400':r>=30?'text-amber-400':'text-rose-400'}">${r}%</div>
+                <div class="text-[9px] text-slate-600 mt-0.5">ສຸ່ມແທ້ ≈ ${base}%</div>
             </div>`).join('')}
            </div>
-           <p class="text-[10px] text-slate-600 italic mt-2">ທົດສອບ ${Math.min(draws.length-1,30)} ຄັ້ງຫຼ້າສຸດ (max 30)</p>`;
+           <p class="text-[10px] text-slate-600 italic mt-2">ວັດ signal "Hot/frequency" ຢ່າງດຽວ, walk-forward, ${Math.min(draws.length-1,30)} ຄັ້ງຫຼ້າສຸດ (max 30). ສຳລັບ ensemble ທັງໝົດ (4 signal) ເບິ່ງ Backtest ໃນ tab Smart 2D.</p>`;
 }
 
 function backtestHR(topN) {
